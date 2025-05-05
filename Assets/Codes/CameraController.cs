@@ -6,73 +6,167 @@ using System.Text;
 
 public class CameraController : MonoBehaviour
 {
-    public float mouseSensitivity = 100f;
-    public float verticalClamp = 80f;
-
-    private float xRotation = 0f;
+    // Removidos los parámetros de sensibilidad de mouse ya que no lo usaremos
+    public float wiimoteMovementSpeed = 8.0f;  // Aumentado para un movimiento más rápido
+    public float wiimoteRotationSpeed = 90.0f; // Para el giro con botones 1 y 2
+    
     private float yRotation = 0f;
+    private float xRotation = 0f;
 
     Wiimote mote;
     private bool isRecordingAccel = false;
     private List<Vector3> accelReadings = new List<Vector3>();
     private float recordingDuration = 2.0f;
+    private Vector3 moveDirection = Vector3.zero;
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;  
-        WiimoteManager.FindWiimotes(); 
-        mote = WiimoteManager.Wiimotes[0];
-        mote.SendDataReportMode(InputDataType.REPORT_BUTTONS_ACCEL_EXT16); 
+        // Mantenemos el cursor bloqueado para mejor experiencia
+        Cursor.lockState = CursorLockMode.Locked;
         
-        // Corregido: CalibrateAccel (una 'l') y AccelCalibrationStep.A_BUTTON_UP (BUTTON, no BUTON)
-        mote.Accel.CalibrateAccel(AccelCalibrationStep.A_BUTTON_UP);
-        
-        // Verificar si hay datos de calibración disponibles 
-        float[] zeroPoints = mote.Accel.GetAccelZeroPoints();
-        bool calibrationAvailable = (zeroPoints != null && zeroPoints.Length == 3);
-        
-        // Enviar datos a la consola
-        Debug.Log("Estado de calibración del Wiimote: " + (calibrationAvailable ? "Disponible" : "No disponible"));
-        
-        // Guardar datos en archivo
-        string calibrationPath = Application.persistentDataPath + "/wiimote_calibration.txt";
-        string calibrationData = "Estado de calibración del Wiimote: " + (calibrationAvailable ? "Disponible" : "No disponible") + "\n";
-        
-        if (calibrationAvailable)
+        WiimoteManager.FindWiimotes();
+        if (WiimoteManager.Wiimotes.Count > 0)
         {
-            calibrationData += "Datos de accel_calib:\n";
-            for (int i = 0; i < 3; i++) 
-            {
-                calibrationData += "Paso " + i + ": ";
-                for (int j = 0; j < 3; j++)
-                {
-                    calibrationData += mote.Accel.accel_calib[i, j] + " ";
-                }
-                calibrationData += "\n";
-            }
+            mote = WiimoteManager.Wiimotes[0];
+            mote.SendDataReportMode(InputDataType.REPORT_BUTTONS_ACCEL_EXT16);
+            mote.Accel.CalibrateAccel(AccelCalibrationStep.A_BUTTON_UP);
             
-            calibrationData += "\nPuntos cero:\n";
-            calibrationData += "X0: " + zeroPoints[0] + "\n";
-            calibrationData += "Y0: " + zeroPoints[1] + "\n";
-            calibrationData += "Z0: " + zeroPoints[2] + "\n";
+            // Verificar si hay datos de calibración disponibles 
+            float[] zeroPoints = mote.Accel.GetAccelZeroPoints();
+            bool calibrationAvailable = (zeroPoints != null && zeroPoints.Length == 3);
             
-            // También obtener datos calibrados actuales
-            float[] calibratedData = mote.Accel.GetCalibratedAccelData();
-            calibrationData += "\nDatos calibrados actuales:\n";
-            calibrationData += "X: " + calibratedData[0] + "\n";
-            calibrationData += "Y: " + calibratedData[1] + "\n";
-            calibrationData += "Z: " + calibratedData[2] + "\n";
+            Debug.Log("Estado de calibración del Wiimote: " + (calibrationAvailable ? "Disponible" : "No disponible"));
             
-            Debug.Log("Datos de calibración guardados en: " + calibrationPath);
+            // Encender LED para indicar que está listo
+            mote.SendPlayerLED(true, false, false, false);
+            
+            Debug.Log("Wiimote conectado! Usa cruceta para movimiento, botones 1 y 2 para girar.");
         }
-        
-        System.IO.File.WriteAllText(calibrationPath, calibrationData);
-        mote.SendPlayerLED(true, false, false, false);
-
-        // Después de la calibración, inicia la lectura de aceleración durante 2 segundos
-        StartCoroutine(RecordAccelerationData());
+        else
+        {
+            Debug.LogError("No se encontró ningún Wiimote. Por favor conecta un Wiimote e intenta nuevamente.");
+        }
     }
 
+    void Update()
+    {
+        // Verificar que el mando esté conectado
+        if (mote == null)
+        {
+            Debug.LogWarning("Wiimote no conectado o perdido. Intentando reconectar...");
+            WiimoteManager.FindWiimotes();
+            if (WiimoteManager.Wiimotes.Count > 0)
+            {
+                mote = WiimoteManager.Wiimotes[0];
+                mote.SendDataReportMode(InputDataType.REPORT_BUTTONS_ACCEL_EXT16);
+            }
+            return;
+        }
+        
+        // Leer datos del Wiimote cada frame
+        mote.ReadWiimoteData();
+        
+        if (!isRecordingAccel)
+        {
+            // --------------- MANEJO DE MOVIMIENTO ---------------
+            moveDirection = Vector3.zero;
+            
+            // Movimiento con cruceta
+            if (mote.Button.d_up)
+            {
+                moveDirection += transform.forward;
+                Debug.Log("▲ Moviendo ADELANTE");
+            }
+            
+            if (mote.Button.d_down)
+            {
+                moveDirection -= transform.forward;
+                Debug.Log("▼ Moviendo ATRÁS");
+            }
+            
+            if (mote.Button.d_left)
+            {
+                moveDirection -= transform.right;
+                Debug.Log("◄ Moviendo IZQUIERDA");
+            }
+            
+            if (mote.Button.d_right)
+            {
+                moveDirection += transform.right;
+                Debug.Log("► Moviendo DERECHA");
+            }
+            
+            // Movimiento vertical con + y -
+            if (mote.Button.plus)
+            {
+                moveDirection += Vector3.up;
+                Debug.Log("+ Moviendo ARRIBA");
+            }
+            
+            if (mote.Button.minus)
+            {
+                moveDirection += Vector3.down;
+                Debug.Log("- Moviendo ABAJO");
+            }
+            
+            // --------------- MANEJO DE ROTACIÓN ---------------
+            // Usar botones 1 y 2 para rotar
+            if (mote.Button.one)
+            {
+                yRotation -= wiimoteRotationSpeed * Time.deltaTime; // Girar izquierda
+                Debug.Log("1 Girando IZQUIERDA");
+            }
+            
+            if (mote.Button.two)
+            {
+                yRotation += wiimoteRotationSpeed * Time.deltaTime; // Girar derecha
+                Debug.Log("2 Girando DERECHA");
+            }
+            
+            // Mantén los límites de rotación
+            if (yRotation > 360) yRotation -= 360;
+            if (yRotation < 0) yRotation += 360;
+            
+            // Aplicar el movimiento si hay dirección
+            // Aplicar el movimiento si hay dirección
+            if (moveDirection.magnitude > 0.1f)
+            {
+                // Normalizar solo si la magnitud es mayor que 1
+                if (moveDirection.magnitude > 1f)
+                {
+                    moveDirection.Normalize();
+                }
+                
+                // Aumentar SIGNIFICATIVAMENTE la velocidad para ver el efecto
+                float actualSpeed = wiimoteMovementSpeed * 3f; // Triplicamos la velocidad
+                
+                // Usar transform.Translate en lugar de modificar directamente la posición
+                transform.Translate(moveDirection * actualSpeed * Time.deltaTime);
+                
+                // Imprimir posición actual para verificar
+                Debug.Log("POSICIÓN ACTUAL: " + transform.position);
+            }
+            
+            // Aplicar rotación
+            transform.rotation = Quaternion.Euler(xRotation, yRotation, 0f);
+            
+            // Botón Home para reiniciar posición
+            if (mote.Button.home)
+            {
+                transform.position = new Vector3(0, 1, 0);
+                yRotation = 0;
+                xRotation = 0;
+                Debug.Log("⌂ Posición reiniciada");
+            }
+            
+            // Iniciar grabación de aceleración con botón A
+            if (mote.Button.a)
+            {
+                Debug.Log("Botón A presionado - Iniciando grabación de aceleración...");
+                StartCoroutine(RecordAccelerationData());
+            }
+        }
+    }
    IEnumerator RecordAccelerationData()
 {
     // Esperar un momento para que se estabilice la calibración
@@ -169,23 +263,4 @@ void SaveAccelerationData()
     Debug.Log("RUTA COMPLETA DEL ARCHIVO: " + System.IO.Path.GetFullPath(dataPath));
 }
 
-void Update()
-{
-    // Lectura de datos del mouse para controlar la cámara
-    float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
-    float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
-
-    yRotation += mouseX;
-    xRotation -= mouseY;
-    xRotation = Mathf.Clamp(xRotation, -verticalClamp, verticalClamp);
-
-    transform.rotation = Quaternion.Euler(xRotation, yRotation, 0f);
-    
-    // Si presionas la tecla 'R', comienza a grabar datos
-    if (Input.GetKeyDown(KeyCode.R) && !isRecordingAccel && mote != null)
-    {
-        Debug.Log("Iniciando grabación de aceleración con tecla R...");
-        StartCoroutine(RecordAccelerationData());
-    }
-}
 }

@@ -1,0 +1,4 @@
+repository "Petanca 2025-04-28_12-10-28/Petanca@6872449144934@cloud"
+  path "/"
+    br "/main"
+    co "/main"
