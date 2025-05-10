@@ -6,6 +6,12 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/MenuPrincipal.unity
+    guid: 30d45c36a7bc4454480fffec631ed954
+  - enabled: 1
+    path: Assets/Scenes/PetancaSolitario.unity
+    guid: feaa2b6359c30a046b95b80ad677c792
+  - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:
