@@ -1,35 +1,112 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class ModoPractica : MonoBehaviour
 {
+    public int bolasRestantes = 3;
+    public double distancia = -1.0;
+
+    public Canvas canvas;
+    private GestorUI gestorUI;
+
+    public GUIStyle estilo;
+
+
+
+    public bool mostrarFinJuego = false;
+
+    void Start()
+    {
+      gestorUI = GetComponent<GestorUI>();
+        if (gestorUI != null)
+        {
+            gestorUI.Inicializar(canvas);
+            gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+            canvas.enabled = false;
+
+
+        }
+
+    }
+
     void OnGUI()
     {
-        // Crear un menú simple
-        GUI.Box(new Rect(10, 10, 200, 150), "Menú Principal");
+        GUI.Label(new Rect(20, 40, 180, 30), "Bolas restantes: " + bolasRestantes, estilo);
 
-        // Botón para iniciar una partida en solitario
-        if (GUI.Button(new Rect(20, 40, 180, 30), "Partida en Solitario"))
-        {
-            CrearPartidaSolitario();
-        }
+        if(distancia == -1.0){
+            GUI.Label(new Rect(20, 70, 180, 30), "Distancia al boliche: Aún falta por lanzar ", estilo);
+        }else{    
+            GUI.Label(new Rect(20, 70, 180, 30), "Distancia mas cercana: " + distancia.ToString("F2") +" metros", estilo);
+        }  
+    }
+    
 
-        // Botón para salir del juego
-        if (GUI.Button(new Rect(20, 80, 180, 30), "Salir"))
+    public void noController()
+    {
+        GUI.Label(new Rect(10, 120, 200, 30), "No se detectó el controlador.", estilo);
+    }
+
+    public void ActualizarDistancia(double nuevaDistancia)
+    {
+        distancia = nuevaDistancia;
+    }
+
+    public void FinJuego(){
+        Debug.Log("Fin del juego");
+        mostrarFinJuego = true;
+        canvas.enabled = true;
+        //gestorUI.Inicializar(canvas);
+        
+    }
+
+
+    public void ReducirBolas()
+    {
+        // Reducir el contador de bolas si quedan bolas
+        if (bolasRestantes > 0)
         {
-            SalirDelJuego();
+            bolasRestantes--;
+
         }
     }
 
-    void CrearPartidaSolitario()
+    public void moverMenu(int movimiento)
     {
-        // Cargar la escena de la partida de petanca
-        SceneManager.LoadScene("PetancaSolitario");
+        Debug.Log("Movimiento del menú: " + movimiento);
+        if (gestorUI != null)
+        {
+            gestorUI.MoverMenu(movimiento);
+        }
     }
 
-    void SalirDelJuego()
+    public void SeleccionarBoton()
     {
-        // Salir del juego
-        Application.Quit();
+        if (gestorUI != null)
+        {
+            gestorUI.SeleccionarBoton();
+        }
+    }
+
+    public void LiberarBoton()
+    {
+        if (gestorUI != null)
+        {
+            gestorUI.LiberarBoton();
+        }
+    }
+
+    public void EjecutarOpcionSeleccionada(int botonSeleccionado)
+    {
+        Debug.Log("Botón ejecutado: " + botonSeleccionado);
+
+        if (botonSeleccionado == 0)
+        {
+            SceneManager.LoadScene("PetancaSolitario");
+        }
+        else if (botonSeleccionado == 1)
+        {
+            SceneManager.LoadScene("MenuPrincipal");
+        }
     }
 }
