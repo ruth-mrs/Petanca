@@ -60,24 +60,30 @@ public class MenuPrincipal : MonoBehaviour
     {
         Debug.Log("Botón ejecutado: " + botonSeleccionado);
 
-        // Lógica para cada botón
         switch (botonSeleccionado)
         {
             case 0:
-                Debug.Log("Opción 1 seleccionada: Jugar");
                 IrAlModoPractica();
-              
                 break;
             case 1:
-
-                Debug.Log("Opción 3 seleccionada: Salir");
-                Application.Quit();
+                if(GestorWiimotes.Instance?.wiimote2 != null)
+                {
+                    IrAlModoMultijugador();
+                }
+                else
+                {
+                    Debug.LogWarning("No se detectó el segundo mando Wii.");
+                }
+                break;
+            case 2:
+                SalirDelJuego();
                 break;
         }
     }
 
-
-
+    public void IrAlModoMultijugador(){
+        SceneManager.LoadScene("PetancaMultijugador");
+    }
 
     public void IrAlModoPractica(){
         SceneManager.LoadScene("PetancaSolitario");

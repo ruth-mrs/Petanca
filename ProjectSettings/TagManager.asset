@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 3
   tags:
   - Bola
+  - BolaJugador1
+  - BolaJugador2
   layers:
   - Default
   - TransparentFX

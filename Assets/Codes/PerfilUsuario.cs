@@ -11,4 +11,9 @@ public class PerfilUsuario : MonoBehaviour
         return fuerzaBase;
     }
 
+    public void setFuerzaBase(float fuerza)
+    {
+        fuerzaBase = fuerza;
+    }
+
 }

@@ -6,6 +6,8 @@ public class GestorWiimotes : MonoBehaviour
     public static GestorWiimotes Instance;
     public Wiimote wiimote; 
 
+    public Wiimote wiimote2;
+
     void Awake()
     {
         if (Instance == null)
@@ -29,6 +31,12 @@ public class GestorWiimotes : MonoBehaviour
             wiimote.SendDataReportMode(InputDataType.REPORT_BUTTONS_ACCEL_EXT16);
             wiimote.Accel.CalibrateAccel(AccelCalibrationStep.LEFT_SIDE_UP);
             Debug.Log("Wiimote conectado.");
+
+            wiimote2 = WiimoteManager.Wiimotes[1];
+            wiimote2.SendPlayerLED(false, true, false, false);
+            wiimote2.SendDataReportMode(InputDataType.REPORT_BUTTONS_ACCEL_EXT16);
+            wiimote2.Accel.CalibrateAccel(AccelCalibrationStep.LEFT_SIDE_UP);
+            Debug.Log("Wiimote 2 conectado.");
         }
         else
         {
