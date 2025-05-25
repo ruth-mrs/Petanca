@@ -1,3 +1,7 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -12,35 +16,35 @@ public class ModoPractica : MonoBehaviour
 
     public GUIStyle estilo;
 
-
+    public Animator animator;
 
     public bool mostrarFinJuego = false;
+    public bool mostrarPausa = false;
 
     void Start()
     {
-      gestorUI = GetComponent<GestorUI>();
+        gestorUI = GetComponent<GestorUI>();
         if (gestorUI != null)
         {
             gestorUI.Inicializar(canvas);
             gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
             canvas.enabled = false;
-
-
         }
-
     }
 
     void OnGUI()
     {
         GUI.Label(new Rect(20, 40, 180, 30), "Bolas restantes: " + bolasRestantes, estilo);
 
-        if(distancia == -1.0){
+        if (distancia == -1.0)
+        {
             GUI.Label(new Rect(20, 70, 180, 30), "Distancia al boliche: Aún falta por lanzar ", estilo);
-        }else{    
-            GUI.Label(new Rect(20, 70, 180, 30), "Distancia mas cercana: " + distancia.ToString("F2") +" metros", estilo);
-        }  
+        }
+        else
+        {
+            GUI.Label(new Rect(20, 70, 180, 30), "Distancia mas cercana: " + distancia.ToString("F2") + " metros", estilo);
+        }
     }
-    
 
     public void noController()
     {
@@ -52,22 +56,18 @@ public class ModoPractica : MonoBehaviour
         distancia = nuevaDistancia;
     }
 
-    public void FinJuego(){
+    public void FinJuego()
+    {
         Debug.Log("Fin del juego");
         mostrarFinJuego = true;
         canvas.enabled = true;
-        //gestorUI.Inicializar(canvas);
-        
     }
-
 
     public void ReducirBolas()
     {
-        // Reducir el contador de bolas si quedan bolas
         if (bolasRestantes > 0)
         {
             bolasRestantes--;
-
         }
     }
 
@@ -79,6 +79,7 @@ public class ModoPractica : MonoBehaviour
             gestorUI.MoverMenu(movimiento);
         }
     }
+
 
     public void SeleccionarBoton()
     {
@@ -94,6 +95,20 @@ public class ModoPractica : MonoBehaviour
         {
             gestorUI.LiberarBoton();
         }
+    }
+
+
+    public void PausarJuego()
+    {
+       mostrarPausa = true;
+       canvas.enabled = true;
+    }
+
+    public void SalirMenu()
+    {
+        mostrarPausa = false;
+        canvas.enabled = false;
+
     }
 
     public void EjecutarOpcionSeleccionada(int botonSeleccionado)

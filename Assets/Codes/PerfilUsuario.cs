@@ -1,8 +1,7 @@
 using UnityEngine;
 using System;
 
-[Serializable]
-public class PerfilUsuario
+public class PerfilUsuario: MonoBehaviour
 {
     public string nombreUsuario;
     public float fuerzaBase = 7f;
