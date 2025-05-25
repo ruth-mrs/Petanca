@@ -12,7 +12,8 @@ public class MenuPrincipal : MonoBehaviour
     public Canvas canvas;
 
 
-    void Start(){
+    void Start()
+    {
         gestorUI = gameObject.GetComponent<GestorUI>();
 
         gestorUI.Inicializar(canvas);
@@ -20,7 +21,7 @@ public class MenuPrincipal : MonoBehaviour
     }
     void Update()
     {
-         Wiimote wiimote = GestorWiimotes.Instance?.wiimote;
+        Wiimote wiimote = GestorWiimotes.Instance?.wiimote;
 
         if (wiimote != null)
         {
@@ -33,7 +34,7 @@ public class MenuPrincipal : MonoBehaviour
             if (wiimote.Button.d_up)
             {
                 gestorUI.MoverMenu(-1);
-              
+
             }
             else if (wiimote.Button.d_down)
             {
@@ -43,7 +44,7 @@ public class MenuPrincipal : MonoBehaviour
 
         if (!wiimote.Button.d_up && !wiimote.Button.d_down)
         {
-                gestorUI.LiberarBoton(); // Liberar el estado de "botón presionado"
+            gestorUI.LiberarBoton(); // Liberar el estado de "botón presionado"
         }
 
 
@@ -52,11 +53,11 @@ public class MenuPrincipal : MonoBehaviour
             gestorUI.SeleccionarBoton();
         }
 
-    
+
     }
 
 
- void EjecutarOpcionSeleccionada(int botonSeleccionado)
+    void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
         Debug.Log("Botón ejecutado: " + botonSeleccionado);
 
@@ -66,7 +67,7 @@ public class MenuPrincipal : MonoBehaviour
                 IrAlModoPractica();
                 break;
             case 1:
-                if(GestorWiimotes.Instance?.wiimote2 != null)
+                if (GestorWiimotes.Instance?.wiimote2 != null)
                 {
                     IrAlModoMultijugador();
                 }
@@ -76,21 +77,33 @@ public class MenuPrincipal : MonoBehaviour
                 }
                 break;
             case 2:
+                IrAConfiguracion();
+                break;
+            case 3:
                 SalirDelJuego();
                 break;
         }
     }
 
-    public void IrAlModoMultijugador(){
+    public void IrAlModoMultijugador()
+    {
         SceneManager.LoadScene("PetancaMultijugador");
     }
 
-    public void IrAlModoPractica(){
+    public void IrAlModoPractica()
+    {
         SceneManager.LoadScene("PetancaSolitario");
     }
 
-    public void SalirDelJuego(){
+    public void IrAConfiguracion()
+    {
+        SceneManager.LoadScene("Configuracion");
+    }
+
+    public void SalirDelJuego()
+    {
         Application.Quit();
     }
+    
 }
 
