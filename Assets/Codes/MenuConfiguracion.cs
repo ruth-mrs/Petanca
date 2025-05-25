@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using WiimoteApi;
 using TMPro;
 
 public class MenuConfiguracion : MonoBehaviour
@@ -11,13 +12,14 @@ public class MenuConfiguracion : MonoBehaviour
     
     [Header("Navegación")]
     public string escenaCrearPerfil = "CrearPerfil";
-    public string escenaEditarPerfil = "EditarPerfil";
+    public string escenaEditarPerfil = "EdicionPerfiles";
     public string escenaMenuPrincipal = "MenuPrincipal";
-    public string escenaAccesibilidad = "Accesibilidad";
+    public string escenaAccesibilidad = "MenuAccesibilidad";
     
     [Header("Estado de UI")]
     public Button botonEditarPerfil;  // Para habilitarlo/deshabilitarlo según existan perfiles
-    
+    private GestorUI gestorUI;
+    public Canvas canvas;
     private void Start()
     {
         // Cargar volumen guardado o usar valor predeterminado (75%)
@@ -32,12 +34,50 @@ public class MenuConfiguracion : MonoBehaviour
             // Asignar listener al cambio de valor
             sliderVolumenGeneral.onValueChanged.AddListener(CambiarVolumen);
         }
-        
         // Aplicar el volumen guardado al audio global
         AudioListener.volume = volumenGuardado;
         
         // Verificar estado del botón editar perfil
         ActualizarEstadoBotones();
+        gestorUI = gameObject.GetComponent<GestorUI>();
+        gestorUI.Inicializar(canvas);
+        gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;        
+    }
+    void Update()
+    {
+        Wiimote wiimote = GestorWiimotes.Instance?.wiimote;
+
+        if (wiimote != null)
+        {
+            int ret;
+            do
+            {
+                ret = wiimote.ReadWiimoteData();
+            } while (ret > 0);
+
+            if (wiimote.Button.d_up)
+            {
+                gestorUI.MoverMenu(-1);
+
+            }
+            else if (wiimote.Button.d_down)
+            {
+                gestorUI.MoverMenu(1);
+            }
+        }
+
+        if (!wiimote.Button.d_up && !wiimote.Button.d_down)
+        {
+            gestorUI.LiberarBoton(); // Liberar el estado de "botón presionado"
+        }
+
+
+        if (wiimote.Button.a)
+        {
+            gestorUI.SeleccionarBoton();
+        }
+
+
     }
     
     private void ActualizarEstadoBotones()
@@ -60,7 +100,26 @@ public class MenuConfiguracion : MonoBehaviour
                 botonEditarPerfil.interactable = false;
         }
     }
-    
+    void EjecutarOpcionSeleccionada(int botonSeleccionado)
+    {
+        Debug.Log("Botón ejecutado: " + botonSeleccionado);
+
+        switch (botonSeleccionado)
+        {
+            case 0:
+                IrACrearPerfil();
+                break;
+            case 1:
+                IrAEditarPerfil();
+                break;
+            case 2:
+                IrAOpcionesAccesibilidad();
+                break;
+            case 3:
+                VolverAlMenuPrincipal();
+                break;
+        }
+    }    
     public void CambiarVolumen(float nuevoVolumen)
     {
         // Actualizar volumen global
@@ -91,6 +150,7 @@ public class MenuConfiguracion : MonoBehaviour
         // Cargar escena de creación de perfil
         SceneManager.LoadScene(escenaCrearPerfil);
     }
+
     
     public void IrAEditarPerfil()
     {

@@ -97,7 +97,7 @@ public class MenuPrincipal : MonoBehaviour
 
     public void IrAConfiguracion()
     {
-        SceneManager.LoadScene("Configuracion");
+        SceneManager.LoadScene("MenuConfiguracion");
     }
 
     public void SalirDelJuego()
