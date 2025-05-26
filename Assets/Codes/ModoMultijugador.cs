@@ -1,6 +1,10 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 public class ModoMultijugador : MonoBehaviour
 {
@@ -17,9 +21,9 @@ public class ModoMultijugador : MonoBehaviour
 
     public GUIStyle estilo;
 
-
-
     public bool mostrarFinJuego = false;
+    public bool mostrarPausa = false;
+    private bool cambioPausa = false;
 
     void Start()
     {
@@ -122,6 +126,38 @@ public class ModoMultijugador : MonoBehaviour
             gestorUI.LiberarBoton();
         }
     }
+
+     public void PausarJuego()
+    {
+        if(!cambioPausa)
+        {
+        cambioPausa = true;
+    
+       mostrarPausa = true;
+       canvas.enabled = true;
+        gestorUI.MoverMenu(0);
+         StartCoroutine(DesactivarCambioPausa());
+        }
+    }
+
+    public void SalirMenu()
+    {
+        if(!cambioPausa){
+        mostrarPausa = false;
+        canvas.enabled = false;
+        cambioPausa = true;
+        StartCoroutine(DesactivarCambioPausa());
+        }
+    
+
+    }
+
+    private IEnumerator DesactivarCambioPausa()
+    {
+        yield return new WaitForSeconds(0.5f);
+        cambioPausa = false;
+    }
+
 
     public void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {

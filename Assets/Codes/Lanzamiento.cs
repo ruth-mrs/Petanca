@@ -121,7 +121,7 @@ public class Lanzamiento : MonoBehaviour
                 SoltarBola();
         
             
-            }else if(wiimote.Button.plus){
+            }else if(wiimote.Button.plus && !modoPractica.mostrarPausa && !modoPractica.mostrarFinJuego){
                 modoPractica.PausarJuego();
             }
             }
@@ -142,8 +142,6 @@ public class Lanzamiento : MonoBehaviour
 
             rbBola.transform.position = mano.transform.position - new Vector3(0, 0.1f, 0);
             
-            rbBola.transform.rotation = mano.transform.rotation;
-
         }
     }
 

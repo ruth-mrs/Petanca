@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 
+[Serializable]
 public class PerfilUsuario: MonoBehaviour
 {
     public string nombreUsuario;

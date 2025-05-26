@@ -11,15 +11,16 @@ public class MenuConfiguracion : MonoBehaviour
     public TextMeshProUGUI textoVolumen;
     
     [Header("Navegación")]
-    public string escenaCrearPerfil = "CrearPerfil";
-    public string escenaEditarPerfil = "EdicionPerfiles";
-    public string escenaMenuPrincipal = "MenuPrincipal";
-    public string escenaAccesibilidad = "MenuAccesibilidad";
+    private string escenaCrearPerfil = "CrearPerfil";
+    private string escenaEditarPerfil = "EdicionPerfiles";
+    private string escenaMenuPrincipal = "MenuPrincipal";
+    private string escenaAccesibilidad = "MenuAccesibilidad";
     
     [Header("Estado de UI")]
     public Button botonEditarPerfil;  // Para habilitarlo/deshabilitarlo según existan perfiles
     private GestorUI gestorUI;
     public Canvas canvas;
+    public bool wiimotebuttonused = false;
     private void Start()
     {
         // Cargar volumen guardado o usar valor predeterminado (75%)
@@ -82,6 +83,10 @@ public class MenuConfiguracion : MonoBehaviour
             gestorUI.LiberarBoton(); // Liberar el estado de "botón presionado"
         }
 
+        if(!wiimote.Button.one && !wiimote.Button.two){
+            wiimotebuttonused = false;
+        }
+
 
         if (wiimote.Button.a)
         {
@@ -90,7 +95,6 @@ public class MenuConfiguracion : MonoBehaviour
 
 
     }
-    
     private void ActualizarEstadoBotones()
     {
         // Verificar si existe el gestor de perfiles
@@ -142,11 +146,12 @@ public class MenuConfiguracion : MonoBehaviour
         // Guardar valor para persistencia
         PlayerPrefs.SetFloat("VolumenGeneral", nuevoVolumen);
         PlayerPrefs.Save();
+        
     }
 
     private void SubirVolumen()
     {
-        if (sliderVolumenGeneral != null)
+        if (sliderVolumenGeneral != null && !wiimotebuttonused)
         {
             // Incrementar en 5% (0.05) con límite máximo de 1.0
             float nuevoVolumen = Mathf.Clamp(sliderVolumenGeneral.value + 0.05f, 0f, 1f);
@@ -155,13 +160,14 @@ public class MenuConfiguracion : MonoBehaviour
             // El listener del slider se encargará de llamar a CambiarVolumen()
             // pero por si acaso, lo llamamos manualmente
             CambiarVolumen(nuevoVolumen);
+            wiimotebuttonused = true; // Marcar que se ha usado el botón de Wiimote
         }
     }
 
     // Método para bajar volumen
     private void BajarVolumen()
     {
-        if (sliderVolumenGeneral != null)
+        if (sliderVolumenGeneral != null && !wiimotebuttonused)
         {
             // Decrementar en 5% (0.05) con límite mínimo de 0.0
             float nuevoVolumen = Mathf.Clamp(sliderVolumenGeneral.value - 0.05f, 0f, 1f);
@@ -170,6 +176,7 @@ public class MenuConfiguracion : MonoBehaviour
             // El listener del slider se encargará de llamar a CambiarVolumen()
             // pero por si acaso, lo llamamos manualmente
             CambiarVolumen(nuevoVolumen);
+            wiimotebuttonused = true; // Marcar que se ha usado el botón de Wiimote
         }
     }
     

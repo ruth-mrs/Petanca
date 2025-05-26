@@ -16,10 +16,9 @@ public class ModoPractica : MonoBehaviour
 
     public GUIStyle estilo;
 
-    public Animator animator;
-
     public bool mostrarFinJuego = false;
     public bool mostrarPausa = false;
+    private bool cambioPausa = false;
 
     void Start()
     {
@@ -100,15 +99,33 @@ public class ModoPractica : MonoBehaviour
 
     public void PausarJuego()
     {
+        if(!cambioPausa)
+        {
+        cambioPausa = true;
+    
        mostrarPausa = true;
        canvas.enabled = true;
+        gestorUI.MoverMenu(0);
+         StartCoroutine(DesactivarCambioPausa());
+        }
     }
 
     public void SalirMenu()
     {
+        if(!cambioPausa){
         mostrarPausa = false;
         canvas.enabled = false;
+        cambioPausa = true;
+        StartCoroutine(DesactivarCambioPausa());
+        }
+    
 
+    }
+
+    private IEnumerator DesactivarCambioPausa()
+    {
+        yield return new WaitForSeconds(0.5f);
+        cambioPausa = false;
     }
 
     public void EjecutarOpcionSeleccionada(int botonSeleccionado)

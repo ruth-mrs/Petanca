@@ -1,7 +1,12 @@
 using UnityEngine;
-using System.Collections;
 using WiimoteApi;
 using UnityEngine.UI;
+using Microsoft.Azure.Kinect.Sensor;
+using Microsoft.Azure.Kinect.BodyTracking;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 
 public class LanzamientoMultijugador : MonoBehaviour
@@ -11,13 +16,12 @@ public class LanzamientoMultijugador : MonoBehaviour
     public Wiimote wiimote;
 
     private Rigidbody rbBola;
-    private GameObject mano;
+    public GameObject mano;
     private bool bolaEnganchada = false;
     private Quaternion rotacionInicialBrazo;
     private Vector3 posicionManoAnterior;
     private Vector3 velocidadMano;
     private Vector3 velocidadObjetivo;
-
     private bool isStart = true;
     public GameObject Boliche;
     public ModoMultijugador modoMultijugador;
@@ -27,12 +31,15 @@ public class LanzamientoMultijugador : MonoBehaviour
 
     private Vector3 posicionInicialCamara;
     private Quaternion rotacionInicialCamara;
+    private Vector3 posicionInicialBrazo;
+    private Vector3 posicionFinalBrazo;
 
     private PerfilUsuario perfilUsuario;
 
     private PerfilUsuario perfilUsuario2;
 
     private int turno = 1;
+    private bool kinectListo = false;
 
 void Start()
 {
@@ -60,6 +67,15 @@ void Start()
         }
         
     }
+
+    if (KinectManager.Instance != null && KinectManager.Instance.InicializadoCorrectamente)
+        {
+            kinectListo = true;
+            Debug.Log("Kinect asignada correctamente desde el script dependiente.");
+        }
+        if (!kinectListo) {
+            KinectManager.Instance.InicializarKinect();
+    };
 }
     
 
@@ -92,7 +108,32 @@ void Update()
                 modoMultijugador.LiberarBoton();
             }
         }
+
+        if (modoMultijugador.mostrarPausa){
+            if (wiimote.Button.d_up)
+            {
+                Debug.Log("Botón d_up presionado");
+                modoMultijugador.moverMenu(-1);
+            }
+            else if (wiimote.Button.d_down)
+            {
+                Debug.Log("Botón d_down presionado");
+                modoMultijugador.moverMenu(1);
+            }
+            else if (wiimote.Button.a)
+            {
+                modoMultijugador.SeleccionarBoton();
+            }else if (wiimote.Button.plus)
+            {
+                modoMultijugador.SalirMenu();
+            }
+            if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.plus)
+            {
+                modoMultijugador.LiberarBoton();
+            }
+        }else{
       
+
         
         if(puedeLanzar){
         int ret;
@@ -119,8 +160,12 @@ void Update()
             SoltarBola();
        
         
+        }else if(wiimote.Button.plus && !modoMultijugador.mostrarPausa && !modoMultijugador.mostrarFinJuego){
+                modoMultijugador.PausarJuego();
         }
-    }}
+        }
+    }
+    }
 
 }
 
@@ -129,12 +174,14 @@ void EngancharBola()
 {
     if (rbBola != null)
     {
+        if(!bolaEnganchada){
+                posicionInicialBrazo = ObtenerPosicionBrazo();
+        }
         bolaEnganchada = true;
         rbBola.isKinematic = true;
 
-        Vector3 posicionMano = mano.transform.position; 
-        //Obtener el objeto a partir de rbBola
-        rbBola.transform.position = posicionMano + new Vector3(0, 0.2f, 0);
+       rbBola.transform.position = mano.transform.position - new Vector3(0,0.1f,0); 
+
         
 
     }
@@ -149,13 +196,6 @@ void SoltarBola()
         rbBola.isKinematic = false; 
 
         float[] accel = wiimote.Accel.GetCalibratedAccelData();
-
-        float movimientoLateralReducido = accel[0] * 0.3f;
-
-        Vector3 direccionLanzamiento = new Vector3(-movimientoLateralReducido, 0, accel[1]);
-
-        direccionLanzamiento = direccionLanzamiento.normalized;
-
         float rapidezMovimiento = Mathf.Sqrt(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
 
 
@@ -167,11 +207,10 @@ void SoltarBola()
         }
         Debug.Log($"Fuerza de lanzamiento: {perfilUsuario.getFuerzaBase()}");
         // Aplicar la velocidad inicial a la Bola
+        posicionFinalBrazo = ObtenerPosicionBrazo();
+        Vector3 direccionLanzamiento = (posicionFinalBrazo - posicionInicialBrazo).normalized;
         rbBola.linearVelocity = direccionLanzamiento * fuerzaLanzamiento;
-
         Debug.Log($"Dirección de lanzamiento: {direccionLanzamiento}, Rapidez: {rapidezMovimiento}, Velocidad: {rbBola.linearVelocity}");
-
-
         if(isStart){            
             StartCoroutine(EsperarBoliche());
 
@@ -337,7 +376,22 @@ public void CalcularPuntuacion()
         modoMultijugador.ActualizarDistancia(distanciaMinimaJugador1, 1);
         modoMultijugador.ActualizarDistancia(distanciaMinimaJugador2, 2);
     }
-
 }
+    private Vector3 ObtenerPosicionBrazo()
+    {
+        if (KinectManager.Instance == null || !KinectManager.Instance.InicializadoCorrectamente || KinectManager.Instance.kinectDevice == null || KinectManager.Instance.bodyTracker == null)
+        {
+            return Vector3.zero;
+        }
+        try
+        {
+            return KinectManager.Instance.wristPos;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("Error obteniendo posición del brazo: " + ex.Message);
+            return Vector3.zero;
+        }
+    }
 }
 
