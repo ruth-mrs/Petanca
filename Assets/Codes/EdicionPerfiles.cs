@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 using System.Collections.Generic;
+using WiimoteApi;
 
 public class EdicionPerfiles : MonoBehaviour
 {
@@ -21,13 +22,21 @@ public class EdicionPerfiles : MonoBehaviour
     public TextMeshProUGUI textoAceleracion;
     public TextMeshProUGUI textoFactorAyuda;
     
-    // Botones de acción
+    [Header("Botones de acción")]
     public Button botonEditar;
     public Button botonEliminar;
     public Button botonCrearNuevo;
+    public Button botonVolver;
+    
+    [Header("UI")]
+    public Canvas canvas;
     
     // Perfil seleccionado actualmente
     private PerfilUsuario perfilSeleccionado;
+    private int indicePerfilSeleccionado = 0;
+    
+    // GestorUI
+    private GestorUI gestorUI;
     
     private void Start()
     {
@@ -37,6 +46,15 @@ public class EdicionPerfiles : MonoBehaviour
             Debug.LogError("No se encontró el GestorPerfiles. Asegúrate de inicializarlo primero.");
             return;
         }
+        
+        // Configurar GestorUI
+        gestorUI = gameObject.GetComponent<GestorUI>();
+        if (gestorUI == null)
+        {
+            gestorUI = gameObject.AddComponent<GestorUI>();
+        }
+        gestorUI.Inicializar(canvas);
+        gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
         
         // Cargar lista de perfiles
         CargarListaPerfiles();
@@ -51,8 +69,101 @@ public class EdicionPerfiles : MonoBehaviour
         if (botonCrearNuevo != null)
             botonCrearNuevo.onClick.AddListener(CrearNuevoPerfil);
             
+        if (botonVolver != null)
+            botonVolver.onClick.AddListener(VolverAConfiguracion);
+            
         // Inicialmente, deshabilitar botones hasta que se seleccione un perfil
         ActualizarEstadoBotones();
+        
+        // Seleccionar el primer perfil por defecto
+        if (GestorPerfiles.Instancia.perfilesUsuarios.Count > 0)
+        {
+            indicePerfilSeleccionado = 0;
+            SeleccionarPerfilPorIndice(indicePerfilSeleccionado);
+        }
+    }
+    
+    void Update()
+    {
+        // Control de navegación con Wiimote
+        Wiimote wiimote = GestorWiimotes.Instance?.wiimote;
+
+        if (wiimote != null)
+        {
+            int ret;
+            do
+            {
+                ret = wiimote.ReadWiimoteData();
+            } while (ret > 0);
+
+            // Control de navegación con D-pad para botones
+            if (wiimote.Button.d_up)
+            {
+                gestorUI.MoverMenu(-1);
+            }
+            else if (wiimote.Button.d_down)
+            {
+                gestorUI.MoverMenu(1);
+            }
+
+            // Control de scroll de perfiles con botones 1 y 2
+            if (wiimote.Button.one)
+            {
+                // Botón 1: Perfil anterior
+                CambiarPerfilSeleccionado(-1);
+            }
+            else if (wiimote.Button.two)
+            {
+                // Botón 2: Perfil siguiente
+                CambiarPerfilSeleccionado(1);
+            }
+
+            // Liberar estado de botones
+            if (!wiimote.Button.d_up && !wiimote.Button.d_down)
+            {
+                gestorUI.LiberarBoton();
+            }
+
+            // Seleccionar con botón A
+            if (wiimote.Button.a)
+            {
+                gestorUI.SeleccionarBoton();
+            }
+        }
+    }
+    
+    void EjecutarOpcionSeleccionada(int botonSeleccionado)
+    {
+        Debug.Log("Botón ejecutado: " + botonSeleccionado);
+        // El GestorUI ya ejecuta el onClick automáticamente
+    }
+    
+    // Nuevo método para cambiar perfil seleccionado con botones 1 y 2
+    private void CambiarPerfilSeleccionado(int direccion)
+    {
+        if (GestorPerfiles.Instancia.perfilesUsuarios.Count == 0) return;
+        
+        // Calcular nuevo índice
+        indicePerfilSeleccionado += direccion;
+        
+        // Hacer wrap-around (circular)
+        if (indicePerfilSeleccionado < 0)
+            indicePerfilSeleccionado = GestorPerfiles.Instancia.perfilesUsuarios.Count - 1;
+        else if (indicePerfilSeleccionado >= GestorPerfiles.Instancia.perfilesUsuarios.Count)
+            indicePerfilSeleccionado = 0;
+        
+        // Seleccionar el nuevo perfil
+        SeleccionarPerfilPorIndice(indicePerfilSeleccionado);
+    }
+    
+    // Método para seleccionar perfil por índice
+    private void SeleccionarPerfilPorIndice(int indice)
+    {
+        if (indice >= 0 && indice < GestorPerfiles.Instancia.perfilesUsuarios.Count)
+        {
+            PerfilUsuario perfil = GestorPerfiles.Instancia.perfilesUsuarios[indice];
+            SeleccionarPerfil(perfil);
+        }
     }
     
     // Cargar la lista de perfiles disponibles (SOLO NOMBRES)
@@ -99,7 +210,12 @@ public class EdicionPerfiles : MonoBehaviour
         // Seleccionar el perfil actual por defecto
         if (GestorPerfiles.Instancia.perfilActual != null)
         {
-            SeleccionarPerfil(GestorPerfiles.Instancia.perfilActual);
+            int indice = GestorPerfiles.Instancia.perfilesUsuarios.IndexOf(GestorPerfiles.Instancia.perfilActual);
+            if (indice >= 0)
+            {
+                indicePerfilSeleccionado = indice;
+                SeleccionarPerfil(GestorPerfiles.Instancia.perfilActual);
+            }
         }
     }
     
@@ -118,6 +234,9 @@ public class EdicionPerfiles : MonoBehaviour
     public void SeleccionarPerfil(PerfilUsuario perfil)
     {
         perfilSeleccionado = perfil;
+        
+        // Actualizar índice seleccionado
+        indicePerfilSeleccionado = GestorPerfiles.Instancia.perfilesUsuarios.IndexOf(perfil);
         
         // Actualizar SOLO el panel de detalles (derecha)
         if (textoNombre != null)
@@ -144,6 +263,8 @@ public class EdicionPerfiles : MonoBehaviour
         
         // Actualizar visual de la lista (solo colores, no recrear)
         ActualizarVisualLista();
+        
+        Debug.Log($"Perfil seleccionado: {perfil.nombreUsuario} (Índice: {indicePerfilSeleccionado})");
     }
     
     // Nuevo método para actualizar solo los colores sin recrear toda la lista
@@ -215,13 +336,19 @@ public class EdicionPerfiles : MonoBehaviour
         // Confirmar eliminación (aquí podrías mostrar un diálogo)
         GestorPerfiles.Instancia.EliminarPerfil(perfilSeleccionado);
         
+        // Ajustar índice si es necesario
+        if (indicePerfilSeleccionado >= GestorPerfiles.Instancia.perfilesUsuarios.Count)
+        {
+            indicePerfilSeleccionado = GestorPerfiles.Instancia.perfilesUsuarios.Count - 1;
+        }
+        
         // Actualizar lista
         CargarListaPerfiles();
         
         // Seleccionar otro perfil
-        if (GestorPerfiles.Instancia.perfilActual != null)
+        if (GestorPerfiles.Instancia.perfilesUsuarios.Count > 0)
         {
-            SeleccionarPerfil(GestorPerfiles.Instancia.perfilActual);
+            SeleccionarPerfilPorIndice(indicePerfilSeleccionado);
         }
     }
     

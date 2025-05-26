@@ -4209,6 +4209,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1045278312}
   - component: {fileID: 1045278311}
+  - component: {fileID: 1045278313}
   m_Layer: 0
   m_Name: GestorCreacionPerfil
   m_TagString: Untagged
@@ -4242,6 +4243,7 @@ MonoBehaviour:
   panelProcesoCalibracion: {fileID: 224184053}
   indicadorCargaCircular: {fileID: 418547578}
   textoEstadoCalibracion: {fileID: 971207564}
+  botonComenzarCalibracion: {fileID: 1343282435}
   textoTipoPerfil: {fileID: 1319463943}
   textoLateralidad: {fileID: 1747078491}
   imagenPerfilMovimiento: {fileID: 437602240}
@@ -4253,6 +4255,7 @@ MonoBehaviour:
   botonGuardarPerfil: {fileID: 2045523065}
   tituloPanel: {fileID: 777975899}
   botonVolver: {fileID: 685731293}
+  canvas: {fileID: 1097558021}
 --- !u!4 &1045278312
 Transform:
   m_ObjectHideFlags: 0
@@ -4268,6 +4271,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1045278313
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1045278310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 814e17dd5fadf1b4db63ce752a42798c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1097558018
 GameObject:
   m_ObjectHideFlags: 0

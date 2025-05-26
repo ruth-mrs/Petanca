@@ -28,22 +28,27 @@ public class CreacionPerfil : MonoBehaviour
     public TextMeshProUGUI textoInstrucciones;
     public GameObject panelPrincipalCalibracion;
     public GameObject panelProcesoCalibracion;
-    public RectTransform indicadorCargaCircular;    // Cambiado a RectTransform
+    public RectTransform indicadorCargaCircular;
     public TextMeshProUGUI textoEstadoCalibracion;
+    public Button botonComenzarCalibracion;
 
     [Header("Información del Perfil")]
-    public TextMeshProUGUI textoTipoPerfil;         // Muestra "Perfil reducido" o "Perfil amplio"
-    public TextMeshProUGUI textoLateralidad;        // Muestra "Diestro" o "Zurdo"
-    public Image imagenPerfilMovimiento;            // Imagen ilustrativa del perfil
-    public Sprite imagenPerfilReducido;             // Sprite para perfil reducido
-    public Sprite imagenPerfilAmplio;               // Sprite para perfil amplio
-    public RectTransform contenedorImagen;          // Contenedor de la imagen para girarla según lateralidad
-
+    public TextMeshProUGUI textoTipoPerfil;
+    public TextMeshProUGUI textoLateralidad;
+    public Image imagenPerfilMovimiento;
+    public Sprite imagenPerfilReducido;
+    public Sprite imagenPerfilAmplio;
+    public RectTransform contenedorImagen;
 
     [Header("UI de Nombre")]
     public TMP_InputField campoNombre;
     public Button botonNombreAleatorio;
     public Button botonGuardarPerfil;
+
+    [Header("UI General")]
+    public TextMeshProUGUI tituloPanel;
+    public Button botonVolver;
+    public Canvas canvas;
 
     // Variables para almacenar las selecciones
     private bool esZurdo = false;
@@ -58,9 +63,8 @@ public class CreacionPerfil : MonoBehaviour
     private bool modoEdicion = false;
     private PerfilUsuario perfilEdicion = null;
 
-    [Header("UI General")]
-    public TextMeshProUGUI tituloPanel;
-    public Button botonVolver;
+    // GestorUI
+    private GestorUI gestorUI;
 
     private void Start()
     {
@@ -72,6 +76,13 @@ public class CreacionPerfil : MonoBehaviour
         else
         {
             Debug.LogWarning("No se detectó ningún Wiimote. La calibración podría no funcionar correctamente.");
+        }
+
+        // Configurar GestorUI
+        gestorUI = gameObject.GetComponent<GestorUI>();
+        if (gestorUI == null)
+        {
+            gestorUI = gameObject.AddComponent<GestorUI>();
         }
 
         // Comprobar si estamos en modo edición
@@ -99,9 +110,8 @@ public class CreacionPerfil : MonoBehaviour
                 if (campoNombre != null)
                     campoNombre.text = perfilEdicion.nombreUsuario;
 
-                // También puedes iniciar desde otro panel si es edición
-                // Por ejemplo, ir directo al panel de nombre o al panel que desees
-                MostrarPanelLateralidad(); // O el panel que prefieras como inicio
+                // Iniciar desde lateralidad
+                MostrarPanelLateralidad();
 
                 // Actualizar UI según los valores cargados
                 ActualizarBotonesLateralidad();
@@ -112,7 +122,7 @@ public class CreacionPerfil : MonoBehaviour
             {
                 Debug.LogError("No se pudo encontrar el perfil para editar");
                 modoEdicion = false;
-                MostrarPanelLateralidad(); // Iniciar normalmente
+                MostrarPanelLateralidad();
             }
         }
         else
@@ -123,6 +133,49 @@ public class CreacionPerfil : MonoBehaviour
 
         // Configurar eventos de botones
         ConfigurarEventosBotones();
+    }
+
+    void Update()
+    {
+        // Control de calibración
+        if (calibracionEnCurso && mote != null)
+        {
+            mote.ReadWiimoteData();
+        }
+
+        // Control de navegación con Wiimote
+        Wiimote wiimote = GestorWiimotes.Instance?.wiimote;
+
+        if (wiimote != null)
+        {
+            int ret;
+            do
+            {
+                ret = wiimote.ReadWiimoteData();
+            } while (ret > 0);
+
+            // Control de navegación con D-pad
+            if (wiimote.Button.d_up)
+            {
+                gestorUI.MoverMenu(-1);
+            }
+            else if (wiimote.Button.d_down)
+            {
+                gestorUI.MoverMenu(1);
+            }
+
+            // Liberar estado de botones
+            if (!wiimote.Button.d_up && !wiimote.Button.d_down)
+            {
+                gestorUI.LiberarBoton();
+            }
+
+            // Seleccionar con botón A
+            if (wiimote.Button.a)
+            {
+                gestorUI.SeleccionarBoton();
+            }
+        }
     }
 
     // Actualizar la información mostrada en el panel de calibración
@@ -173,12 +226,20 @@ public class CreacionPerfil : MonoBehaviour
         if (botonReducido != null)
             botonReducido.onClick.AddListener(() => SeleccionarTipoPerfil(true));
 
+        // Botón de calibración
+        if (botonComenzarCalibracion != null)
+            botonComenzarCalibracion.onClick.AddListener(ComenzarCalibracion);
+
         // Botones de nombre
         if (botonNombreAleatorio != null)
             botonNombreAleatorio.onClick.AddListener(GenerarNombreAleatorio);
 
         if (botonGuardarPerfil != null)
             botonGuardarPerfil.onClick.AddListener(GuardarPerfil);
+
+        // Botón volver
+        if (botonVolver != null)
+            botonVolver.onClick.AddListener(VolverAConfiguracion);
     }
 
     // Mostrar solo el panel adecuado
@@ -195,6 +256,24 @@ public class CreacionPerfil : MonoBehaviour
 
         if (panelNombrePerfil != null)
             panelNombrePerfil.SetActive(panelActual == panelNombrePerfil);
+
+        // Reinicializar GestorUI para el panel actual
+        InicializarGestorUIParaPanel(panelActual);
+    }
+
+    private void InicializarGestorUIParaPanel(GameObject panelActual)
+    {
+        if (gestorUI != null && canvas != null)
+        {
+            gestorUI.Inicializar(canvas);
+            gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+        }
+    }
+
+    void EjecutarOpcionSeleccionada(int botonSeleccionado)
+    {
+        Debug.Log("Botón ejecutado: " + botonSeleccionado);
+        // El GestorUI ya ejecuta el onClick automáticamente
     }
 
     // Navegación entre paneles
@@ -349,6 +428,7 @@ public class CreacionPerfil : MonoBehaviour
         // Iniciar el proceso de calibración
         IniciarCalibracion();
     }
+
     private IEnumerator ProcesoCalibracion()
     {
         Debug.Log("Iniciando proceso de calibración");
@@ -489,6 +569,7 @@ public class CreacionPerfil : MonoBehaviour
         // Avanzar al siguiente panel
         MostrarPanelNombre();
     }
+
     public void GenerarNombreAleatorio()
     {
         if (campoNombre != null)
@@ -541,15 +622,6 @@ public class CreacionPerfil : MonoBehaviour
         SceneManager.LoadScene(escenaConfiguracion);
     }
 
-    private void Update()
-    {
-        // Monitorizar botón B para calibración
-        if (calibracionEnCurso && mote != null)
-        {
-            mote.ReadWiimoteData();
-        }
-    }
-    
     public void VolverAlMenuPerfiles()
     {
         // Volver a la escena de edición de perfiles

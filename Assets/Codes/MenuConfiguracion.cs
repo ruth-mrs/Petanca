@@ -66,6 +66,17 @@ public class MenuConfiguracion : MonoBehaviour
             }
         }
 
+         if (wiimote.Button.one)
+        {
+            // Botón 1: Bajar volumen
+            BajarVolumen();
+        }
+        else if (wiimote.Button.two)
+        {
+            // Botón 2: Subir volumen
+            SubirVolumen();
+        }
+
         if (!wiimote.Button.d_up && !wiimote.Button.d_down)
         {
             gestorUI.LiberarBoton(); // Liberar el estado de "botón presionado"
@@ -131,6 +142,35 @@ public class MenuConfiguracion : MonoBehaviour
         // Guardar valor para persistencia
         PlayerPrefs.SetFloat("VolumenGeneral", nuevoVolumen);
         PlayerPrefs.Save();
+    }
+
+    private void SubirVolumen()
+    {
+        if (sliderVolumenGeneral != null)
+        {
+            // Incrementar en 5% (0.05) con límite máximo de 1.0
+            float nuevoVolumen = Mathf.Clamp(sliderVolumenGeneral.value + 0.05f, 0f, 1f);
+            sliderVolumenGeneral.value = nuevoVolumen;
+            
+            // El listener del slider se encargará de llamar a CambiarVolumen()
+            // pero por si acaso, lo llamamos manualmente
+            CambiarVolumen(nuevoVolumen);
+        }
+    }
+
+    // Método para bajar volumen
+    private void BajarVolumen()
+    {
+        if (sliderVolumenGeneral != null)
+        {
+            // Decrementar en 5% (0.05) con límite mínimo de 0.0
+            float nuevoVolumen = Mathf.Clamp(sliderVolumenGeneral.value - 0.05f, 0f, 1f);
+            sliderVolumenGeneral.value = nuevoVolumen;
+            
+            // El listener del slider se encargará de llamar a CambiarVolumen()
+            // pero por si acaso, lo llamamos manualmente
+            CambiarVolumen(nuevoVolumen);
+        }
     }
     
     private void ActualizarTextoVolumen(float volumen)
