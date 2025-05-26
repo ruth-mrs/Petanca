@@ -59,41 +59,68 @@ public class MenuConfiguracion : MonoBehaviour
             if (wiimote.Button.d_up)
             {
                 gestorUI.MoverMenu(-1);
-
             }
             else if (wiimote.Button.d_down)
             {
                 gestorUI.MoverMenu(1);
             }
-        }
 
-         if (wiimote.Button.one)
+            if (wiimote.Button.one)
+            {
+                BajarVolumen();
+            }
+            else if (wiimote.Button.two)
+            {
+                SubirVolumen();
+            }
+
+            if (!wiimote.Button.d_up && !wiimote.Button.d_down)
+            {
+                gestorUI.LiberarBoton();
+            }
+
+            if(!wiimote.Button.one && !wiimote.Button.two){
+                wiimotebuttonused = false;
+            }
+
+            if (wiimote.Button.a)
+            {
+                gestorUI.SeleccionarBoton();
+            }
+        }
+        else
         {
-            // Botón 1: Bajar volumen
-            BajarVolumen();
+            // Controles alternativos para teclado/rato
+            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
+            {
+                gestorUI.MoverMenu(-1);
+            }
+            else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+            {
+                gestorUI.MoverMenu(1);
+            }
+
+            // Controles de volumen con teclado
+            if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
+            {
+                BajarVolumen();
+            }
+            else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
+            {
+                SubirVolumen();
+            }
+
+            if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
+                !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
+            {
+                gestorUI.LiberarBoton();
+            }
+
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+            {
+                gestorUI.SeleccionarBoton();
+            }
         }
-        else if (wiimote.Button.two)
-        {
-            // Botón 2: Subir volumen
-            SubirVolumen();
-        }
-
-        if (!wiimote.Button.d_up && !wiimote.Button.d_down)
-        {
-            gestorUI.LiberarBoton(); // Liberar el estado de "botón presionado"
-        }
-
-        if(!wiimote.Button.one && !wiimote.Button.two){
-            wiimotebuttonused = false;
-        }
-
-
-        if (wiimote.Button.a)
-        {
-            gestorUI.SeleccionarBoton();
-        }
-
-
     }
     private void ActualizarEstadoBotones()
     {

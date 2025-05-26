@@ -34,26 +34,45 @@ public class MenuPrincipal : MonoBehaviour
             if (wiimote.Button.d_up)
             {
                 gestorUI.MoverMenu(-1);
-
             }
             else if (wiimote.Button.d_down)
             {
                 gestorUI.MoverMenu(1);
             }
-        }
 
-        if (!wiimote.Button.d_up && !wiimote.Button.d_down)
+            if (!wiimote.Button.d_up && !wiimote.Button.d_down)
+            {
+                gestorUI.LiberarBoton();
+            }
+
+            if (wiimote.Button.a)
+            {
+                gestorUI.SeleccionarBoton();
+            }
+        }
+        else
         {
-            gestorUI.LiberarBoton(); // Liberar el estado de "botón presionado"
+            // Controles alternativos para teclado/rato
+            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
+            {
+                gestorUI.MoverMenu(-1);
+            }
+            else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+            {
+                gestorUI.MoverMenu(1);
+            }
+
+            if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
+                !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
+            {
+                gestorUI.LiberarBoton();
+            }
+
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+            {
+                gestorUI.SeleccionarBoton();
+            }
         }
-
-
-        if (wiimote.Button.a)
-        {
-            gestorUI.SeleccionarBoton();
-        }
-
-
     }
 
 

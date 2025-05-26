@@ -72,4 +72,9 @@ public class GestorUI : MonoBehaviour
         selectedColors.normalColor = Color.yellow;
         botones[botonSeleccionado].colors = selectedColors;
     }
+
+    internal bool TieneBotones()
+    {
+        throw new NotImplementedException();
+    }
 }

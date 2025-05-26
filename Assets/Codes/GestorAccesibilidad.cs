@@ -3,11 +3,12 @@ using UnityEngine.Rendering.PostProcessing;
 
 public class GestorAccesibilidad : MonoBehaviour
 {
-   public static GestorAccesibilidad Instancia { get; private set; }
+    public static GestorAccesibilidad Instancia { get; private set; }
     
     [Header("Post-Processing")]
     public PostProcessVolume volumenProcesamiento;
     private ColorGrading colorGrading;
+    private bool sistemaInicializado = false;
     
     private void Awake()
     {
@@ -16,70 +17,126 @@ public class GestorAccesibilidad : MonoBehaviour
         {
             Instancia = this;
             DontDestroyOnLoad(gameObject);
-            InicializarGestor();
+            Debug.Log("✅ GestorAccesibilidad creado como singleton");
         }
         else
         {
+            Debug.Log("⚠️ GestorAccesibilidad ya existe, destruyendo duplicado");
             Destroy(gameObject);
+            return;
         }
     }
     
     private void Start()
     {
-        // Aplicar filtro guardado al iniciar
-        CargarYAplicarFiltroGuardado();
+        if (Instancia == this)
+        {
+            InicializarSistema();
+        }
     }
     
-    private void InicializarGestor()
+    private void InicializarSistema()
     {
+        if (sistemaInicializado) return;
+        
+        Debug.Log("🔧 Inicializando sistema de accesibilidad...");
+        
         // Buscar o crear volumen de post-procesamiento
         if (volumenProcesamiento == null)
         {
             volumenProcesamiento = FindObjectOfType<PostProcessVolume>();
+            Debug.Log(volumenProcesamiento != null ? "📍 PostProcessVolume encontrado" : "❌ PostProcessVolume no encontrado");
         }
         
         if (volumenProcesamiento == null)
         {
-            // Crear volumen si no existe
-            GameObject volumeObj = new GameObject("Global Post Process Volume");
-            volumenProcesamiento = volumeObj.AddComponent<PostProcessVolume>();
-            volumenProcesamiento.isGlobal = true;
-            DontDestroyOnLoad(volumeObj);
+            CrearVolumenPostProceso();
         }
         
         // Configurar color grading
-        ConfigurarColorGrading();
+        if (ConfigurarColorGrading())
+        {
+            sistemaInicializado = true;
+            // Aplicar filtro guardado después de la inicialización
+            CargarYAplicarFiltroGuardado();
+            Debug.Log("✅ Sistema de accesibilidad inicializado correctamente");
+        }
+        else
+        {
+            Debug.LogError("❌ Error al inicializar el sistema de accesibilidad");
+        }
     }
     
-    private void ConfigurarColorGrading()
+    private void CrearVolumenPostProceso()
     {
-        if (volumenProcesamiento.profile == null)
+        Debug.Log("🔨 Creando PostProcessVolume...");
+        GameObject volumeObj = new GameObject("Global Post Process Volume");
+        volumenProcesamiento = volumeObj.AddComponent<PostProcessVolume>();
+        volumenProcesamiento.isGlobal = true;
+        volumenProcesamiento.priority = 1;
+        DontDestroyOnLoad(volumeObj);
+        Debug.Log("✅ PostProcessVolume creado");
+    }
+    
+    private bool ConfigurarColorGrading()
+    {
+        try
         {
-            volumenProcesamiento.profile = ScriptableObject.CreateInstance<PostProcessProfile>();
+            if (volumenProcesamiento.profile == null)
+            {
+                volumenProcesamiento.profile = ScriptableObject.CreateInstance<PostProcessProfile>();
+                Debug.Log("📋 Perfil de post-procesamiento creado");
+            }
+            
+            if (!volumenProcesamiento.profile.TryGetSettings(out colorGrading))
+            {
+                colorGrading = volumenProcesamiento.profile.AddSettings<ColorGrading>();
+                Debug.Log("🎨 ColorGrading añadido al perfil");
+            }
+            
+            colorGrading.enabled.Override(true);
+            Debug.Log("✅ ColorGrading configurado correctamente");
+            return true;
         }
-        
-        if (!volumenProcesamiento.profile.TryGetSettings(out colorGrading))
+        catch (System.Exception e)
         {
-            colorGrading = volumenProcesamiento.profile.AddSettings<ColorGrading>();
+            Debug.LogError($"❌ Error configurando ColorGrading: {e.Message}");
+            return false;
         }
-        
-        colorGrading.enabled.Override(true);
     }
     
     private void CargarYAplicarFiltroGuardado()
     {
+        if (!sistemaInicializado)
+        {
+            Debug.LogWarning("⚠️ Sistema no inicializado, esperando...");
+            Invoke(nameof(CargarYAplicarFiltroGuardado), 0.1f);
+            return;
+        }
+        
         int filtroGuardado = PlayerPrefs.GetInt("FiltroAccesibilidad", 0);
+        Debug.Log($"💾 Cargando filtro guardado: {(MenuAccesibilidad.TipoDaltonismo)filtroGuardado}");
         AplicarFiltro((MenuAccesibilidad.TipoDaltonismo)filtroGuardado);
     }
     
     public void AplicarFiltro(MenuAccesibilidad.TipoDaltonismo tipo)
     {
-        if (colorGrading == null) 
+        if (!sistemaInicializado)
         {
-            Debug.LogWarning("ColorGrading no inicializado. Intentando configurar...");
-            ConfigurarColorGrading();
-            if (colorGrading == null) return;
+            Debug.LogWarning("⚠️ Sistema no inicializado. Inicializando...");
+            InicializarSistema();
+            if (!sistemaInicializado) return;
         }
+        
+        if (colorGrading == null)
+        {
+            Debug.LogError("❌ ColorGrading es null. No se puede aplicar filtro.");
+            return;
+        }
+        
+        // Guardar la preferencia inmediatamente
+        PlayerPrefs.SetInt("FiltroAccesibilidad", (int)tipo);
+        PlayerPrefs.Save();
         
         switch (tipo)
         {
@@ -106,7 +163,20 @@ public class GestorAccesibilidad : MonoBehaviour
                 break;
         }
         
-        Debug.Log($"Filtro aplicado: {tipo}");
+        Debug.Log($"✅ Filtro aplicado y guardado: {tipo}");
+    }
+    
+    // Método público para verificar si el sistema está listo
+    public bool SistemaListo()
+    {
+        return sistemaInicializado && colorGrading != null;
+    }
+    
+    // Método público para forzar inicialización
+    public void ForzarInicializacion()
+    {
+        sistemaInicializado = false;
+        InicializarSistema();
     }
     
     private void AplicarFiltroNormal()
@@ -224,6 +294,7 @@ public class GestorAccesibilidad : MonoBehaviour
     {
         if (Instancia == this)
         {
+            Debug.Log("🔄 GestorAccesibilidad destruido");
             Instancia = null;
         }
     }

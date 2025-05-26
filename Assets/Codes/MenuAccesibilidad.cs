@@ -6,6 +6,22 @@ using WiimoteApi;
 
 public class MenuAccesibilidad : MonoBehaviour
 {
+    public enum TipoDaltonismo
+    {
+        Normal = 0,
+        Protanopia = 1,
+        Deuteronopia = 2,
+        Tritanopia = 3,
+        Protanomalia = 4,
+        Deuteranomalia = 5,
+        Tritanomalia = 6
+    }
+    
+    [Header("UI Components")]
+    public Dropdown dropdownFiltros;
+    public Button botonAplicar;
+    public Text textoEstado;
+    
     [Header("Navegación")]
     public string escenaConfiguracion = "MenuConfiguracion";
     
@@ -16,7 +32,6 @@ public class MenuAccesibilidad : MonoBehaviour
     public Button botonVolverConfiguracion;
     
     [Header("Botones de Filtros")]
-    // Eliminamos botonNormal ya que usamos el botón Restablecer
     public Button botonProtanopia;
     public Button botonDeuteronopia;
     public Button botonTritanopia;
@@ -26,29 +41,21 @@ public class MenuAccesibilidad : MonoBehaviour
     
     [Header("Vista Previa")]
     public Image imagenPrevia;
-    public Sprite[] imagenesEjemplo; // Imágenes para mostrar el efecto
+    public Sprite[] imagenesEjemplo;
     
     [Header("UI")]
     private GestorUI gestorUI;
     public Canvas canvas;
     
-    // Enum para los tipos de daltonismo
-    public enum TipoDaltonismo
-    {
-        Normal,
-        Protanopia,    // Ceguera al rojo
-        Deuteronopia,  // Ceguera al verde
-        Tritanopia,    // Ceguera al azul
-        Protanomalia,  // Deficiencia al rojo
-        Deuteranomalia, // Deficiencia al verde
-        Tritanomalia   // Deficiencia al azul
-    }
-    
-    private TipoDaltonismo filtroSeleccionado;
+    // Variables privadas
     private Button[] botonesFiltros;
+    private TipoDaltonismo filtroSeleccionado = TipoDaltonismo.Normal;
     
     private void Start()
     {
+        ConfigurarUI();
+        CargarSeleccionActual();
+        
         InicializarBotonesFiltros();
         ConfigurarBotones();
         CargarFiltroGuardado();
@@ -97,11 +104,34 @@ public class MenuAccesibilidad : MonoBehaviour
                 gestorUI.SeleccionarBoton();
             }
         }
+        else
+        {
+            // Keyboard/Mouse fallback controls
+            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
+            {
+                gestorUI.MoverMenu(-1);
+            }
+            else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+            {
+                gestorUI.MoverMenu(1);
+            }
+
+            if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
+                !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
+            {
+                gestorUI.LiberarBoton();
+            }
+
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+            {
+                gestorUI.SeleccionarBoton();
+            }
+        }
     }
     
     private void InicializarBotonesFiltros()
     {
-        // Crear array solo con los botones de filtros de daltonismo (sin Normal)
+        // Crear array con los botones de filtros de daltonismo
         botonesFiltros = new Button[]
         {
             botonProtanopia,
@@ -115,7 +145,7 @@ public class MenuAccesibilidad : MonoBehaviour
     
     private void ConfigurarBotones()
     {
-        // Configurar botones de filtros (sin botonNormal)
+        // Configurar botones de filtros
         if (botonProtanopia != null)
             botonProtanopia.onClick.AddListener(() => SeleccionarFiltro(TipoDaltonismo.Protanopia));
         
@@ -149,7 +179,6 @@ public class MenuAccesibilidad : MonoBehaviour
     {
         Debug.Log("Botón ejecutado: " + botonSeleccionado);
         // El GestorUI ya ejecuta el onClick automáticamente
-        // Este método se puede usar para acciones adicionales si es necesario
     }
     
     private void SeleccionarFiltro(TipoDaltonismo tipo)
@@ -189,7 +218,9 @@ public class MenuAccesibilidad : MonoBehaviour
     
     private void ActualizarVisualizacionBotones()
     {
-        // Solo actualizar botones de filtros de daltonismo (no incluye Normal)
+        if (botonesFiltros == null) return;
+        
+        // Solo actualizar botones de filtros de daltonismo
         TipoDaltonismo[] tiposFiltros = {
             TipoDaltonismo.Protanopia,
             TipoDaltonismo.Deuteronopia,
@@ -199,7 +230,7 @@ public class MenuAccesibilidad : MonoBehaviour
             TipoDaltonismo.Tritanomalia
         };
         
-        for (int i = 0; i < botonesFiltros.Length; i++)
+        for (int i = 0; i < botonesFiltros.Length && i < tiposFiltros.Length; i++)
         {
             if (botonesFiltros[i] != null)
             {
@@ -302,6 +333,67 @@ public class MenuAccesibilidad : MonoBehaviour
         }
     }
     
+    private void ConfigurarUI()
+    {
+        if (dropdownFiltros != null)
+        {
+            dropdownFiltros.options.Clear();
+            dropdownFiltros.options.Add(new Dropdown.OptionData("Normal"));
+            dropdownFiltros.options.Add(new Dropdown.OptionData("Protanopia (Ceguera al Rojo)"));
+            dropdownFiltros.options.Add(new Dropdown.OptionData("Deuteronopia (Ceguera al Verde)"));
+            dropdownFiltros.options.Add(new Dropdown.OptionData("Tritanopia (Ceguera al Azul)"));
+            dropdownFiltros.options.Add(new Dropdown.OptionData("Protanomalia (Deficiencia al Rojo)"));
+            dropdownFiltros.options.Add(new Dropdown.OptionData("Deuteranomalia (Deficiencia al Verde)"));
+            dropdownFiltros.options.Add(new Dropdown.OptionData("Tritanomalia (Deficiencia al Azul)"));
+            
+            dropdownFiltros.onValueChanged.AddListener(OnFiltroSeleccionado);
+        }
+        
+        if (botonAplicar != null)
+        {
+            botonAplicar.onClick.AddListener(AplicarFiltroSeleccionado);
+        }
+    }
+    
+    private void CargarSeleccionActual()
+    {
+        int filtroGuardado = PlayerPrefs.GetInt("FiltroAccesibilidad", 0);
+        if (dropdownFiltros != null)
+        {
+            dropdownFiltros.value = filtroGuardado;
+        }
+        ActualizarTextoEstado((TipoDaltonismo)filtroGuardado);
+    }
+    
+    public void OnFiltroSeleccionado(int indice)
+    {
+        TipoDaltonismo tipo = (TipoDaltonismo)indice;
+        ActualizarTextoEstado(tipo);
+    }
+    
+    private void ActualizarTextoEstado(TipoDaltonismo tipo)
+    {
+        if (textoEstado != null)
+        {
+            textoEstado.text = $"Filtro actual: {ObtenerNombreFiltro(tipo)}";
+        }
+    }
+    
+    private string ObtenerNombreFiltro(TipoDaltonismo tipo)
+    {
+        switch (tipo)
+        {
+            case TipoDaltonismo.Normal: return "Normal";
+            case TipoDaltonismo.Protanopia: return "Protanopia";
+            case TipoDaltonismo.Deuteronopia: return "Deuteronopia";
+            case TipoDaltonismo.Tritanopia: return "Tritanopia";
+            case TipoDaltonismo.Protanomalia: return "Protanomalia";
+            case TipoDaltonismo.Deuteranomalia: return "Deuteranomalia";
+            case TipoDaltonismo.Tritanomalia: return "Tritanomalia";
+            default: return "Desconocido";
+        }
+    }
+    
     public void VolverAConfiguracion()
     {
         // Guardar cualquier configuración pendiente
@@ -315,6 +407,15 @@ public class MenuAccesibilidad : MonoBehaviour
     {
         // Restablecer a normal (sin filtro)
         filtroSeleccionado = TipoDaltonismo.Normal;
+        
+        // Aplicar inmediatamente el filtro normal
+        if (GestorAccesibilidad.Instancia != null)
+        {
+            GestorAccesibilidad.Instancia.AplicarFiltro(filtroSeleccionado);
+            PlayerPrefs.SetInt("FiltroAccesibilidad", (int)filtroSeleccionado);
+            PlayerPrefs.Save();
+        }
+        
         ActualizarTextoFiltro(filtroSeleccionado);
         ActualizarVistaPrevia(filtroSeleccionado);
         ActualizarEstadoBotones();

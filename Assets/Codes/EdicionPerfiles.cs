@@ -130,6 +130,39 @@ public class EdicionPerfiles : MonoBehaviour
                 gestorUI.SeleccionarBoton();
             }
         }
+        else
+        {
+            // Keyboard/Mouse fallback controls
+            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
+            {
+                gestorUI.MoverMenu(-1);
+            }
+            else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+            {
+                gestorUI.MoverMenu(1);
+            }
+
+            // Profile navigation with left/right arrows or A/D keys
+            if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
+            {
+                CambiarPerfilSeleccionado(-1);
+            }
+            else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
+            {
+                CambiarPerfilSeleccionado(1);
+            }
+
+            if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
+                !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
+            {
+                gestorUI.LiberarBoton();
+            }
+
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+            {
+                gestorUI.SeleccionarBoton();
+            }
+        }
     }
     
     void EjecutarOpcionSeleccionada(int botonSeleccionado)
@@ -308,16 +341,12 @@ public class EdicionPerfiles : MonoBehaviour
     public void EditarPerfilSeleccionado()
     {
         if (perfilSeleccionado == null)
-            return;
-            
-        // Guardar índice del perfil a editar
-        int indice = GestorPerfiles.Instancia.perfilesUsuarios.IndexOf(perfilSeleccionado);
-        PlayerPrefs.SetInt("IndicePerfilEditar", indice);
-        PlayerPrefs.SetInt("ModoEdicion", 1);
-        PlayerPrefs.Save();
-        
-        // Ir a la escena de creación/edición
-        SceneManager.LoadScene(escenaCreacionPerfil);
+        return;
+    int indice = GestorPerfiles.Instancia.perfilesUsuarios.IndexOf(perfilSeleccionado);
+    PlayerPrefs.SetInt("IndicePerfilEditar", indice);
+    PlayerPrefs.SetInt("ModoEdicion", 1);
+    PlayerPrefs.Save();
+    SceneManager.LoadScene(escenaCreacionPerfil);
     }
     
     // Eliminar el perfil seleccionado
