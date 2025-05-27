@@ -367,7 +367,7 @@ public class LanzamientoMultijugador : MonoBehaviour
 
             CalcularPuntuacion();
             RecuperarCamara(camara);
-            instanciarBola(turno % 2 == 0 ? 2 : 1);
+            instanciarBola(turno % 2 == 0 ? 1 : 2);
             ReiniciarCuerpo();
             AvanzarTurno();          
             puedeLanzar = true;

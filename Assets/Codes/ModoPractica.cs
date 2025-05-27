@@ -1,10 +1,8 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
+using TMPro;
 
 public class ModoPractica : MonoBehaviour
 {
@@ -13,11 +11,24 @@ public class ModoPractica : MonoBehaviour
 
     public Canvas canvas;
 
-    public GUIStyle estilo;
-
     public bool mostrarFinJuego = false;
     public bool mostrarPausa = false;
     private bool cambioPausa = false;
+
+    // UI Elements (asigna en el inspector)
+    public TMP_Text textoTitulo;
+    public TMP_Text textoBolas;
+    public TMP_Text textoDistancia;
+    public GameObject panelResultado;
+    public TMP_Text textoFinJuego;
+    public TMP_Text textoDistanciaFinal;
+
+    // Materiales para resaltar la bola más cercana
+    public Material materialNormal;
+    public Material materialResaltado;
+
+    // Referencia a la bola más cercana actual
+    private GameObject bolaMasCercanaActual;
 
     void Start()
     {
@@ -27,37 +38,80 @@ public class ModoPractica : MonoBehaviour
             GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
             canvas.enabled = false;
         }
+        ActualizarUI();
     }
 
-    void OnGUI()
+    void Update()
     {
-        GUI.Label(new Rect(20, 40, 180, 30), "Bolas restantes: " + bolasRestantes, estilo);
-
-        if (distancia == -1.0)
-        {
-            GUI.Label(new Rect(20, 70, 180, 30), "Distancia al boliche: Aún falta por lanzar ", estilo);
-        }
-        else
-        {
-            GUI.Label(new Rect(20, 70, 180, 30), "Distancia mas cercana: " + distancia.ToString("F2") + " metros", estilo);
-        }
+        ActualizarUI();
     }
 
-    public void noController()
+    private void ActualizarUI()
     {
-        GUI.Label(new Rect(10, 120, 200, 30), "No se detectó el controlador.", estilo);
+        if (textoTitulo) textoTitulo.text = "MODO PRÁCTICA";
+        if (textoBolas) textoBolas.text = $"Bolas restantes: {bolasRestantes}";
+        if (textoDistancia)
+        {
+            textoDistancia.text = distancia == -1.0
+                ? "Aún falta por lanzar"
+                : $"Distancia más cercana: {distancia:F2} m";
+        }
     }
 
     public void ActualizarDistancia(double nuevaDistancia)
     {
         distancia = nuevaDistancia;
+        ActualizarUI();
+    }
+
+    /// <summary>
+    /// Llama a este método cada vez que determines cuál es la bola más cercana.
+    /// </summary>
+    /// <param name="nuevaBola">GameObject de la nueva bola más cercana</param>
+    /// <param name="nuevaDistancia">Distancia de la nueva bola más cercana</param>
+    public void ActualizarBolaMasCercana(GameObject nuevaBola, double nuevaDistancia)
+    {
+        // Si hay una bola anterior resaltada y es diferente a la nueva, restaurar su material
+        if (bolaMasCercanaActual != null && bolaMasCercanaActual != nuevaBola)
+        {
+            var rendererAnterior = bolaMasCercanaActual.GetComponent<Renderer>();
+            if (rendererAnterior != null && materialNormal != null)
+            {
+                rendererAnterior.material = materialNormal;
+            }
+        }
+
+        // Resalta la nueva bola más cercana
+        if (nuevaBola != null)
+        {
+            var rendererNuevo = nuevaBola.GetComponent<Renderer>();
+            if (rendererNuevo != null && materialResaltado != null)
+            {
+                rendererNuevo.material = materialResaltado;
+            }
+            bolaMasCercanaActual = nuevaBola;
+            distancia = nuevaDistancia;
+            ActualizarUI();
+        }
     }
 
     public void FinJuego()
     {
-        Debug.Log("Fin del juego");
         mostrarFinJuego = true;
         canvas.enabled = true;
+        MostrarPanelResultado();
+    }
+
+    private void MostrarPanelResultado()
+    {
+        if (panelResultado && textoFinJuego && textoDistanciaFinal)
+        {
+            panelResultado.SetActive(true);
+            textoFinJuego.text = "¡Fin del juego!";
+            textoDistanciaFinal.text = distancia == -1.0
+                ? "No se registró distancia."
+                : $"Distancia más cercana: {distancia:F2} m";
+        }
     }
 
     public void ReducirBolas()
@@ -65,18 +119,17 @@ public class ModoPractica : MonoBehaviour
         if (bolasRestantes > 0)
         {
             bolasRestantes--;
+            ActualizarUI();
         }
     }
 
     public void moverMenu(int movimiento)
     {
-        Debug.Log("Movimiento del menú: " + movimiento);
         if (GestorUI.Instance != null)
         {
             GestorUI.Instance.MoverMenu(movimiento);
         }
     }
-
 
     public void SeleccionarBoton()
     {
@@ -94,30 +147,27 @@ public class ModoPractica : MonoBehaviour
         }
     }
 
-
     public void PausarJuego()
     {
-        if(!cambioPausa)
+        if (!cambioPausa)
         {
-        cambioPausa = true;
-    
-       mostrarPausa = true;
-       canvas.enabled = true;
-       GestorUI.Instance.MoverMenu(0);
-         StartCoroutine(DesactivarCambioPausa());
+            cambioPausa = true;
+            mostrarPausa = true;
+            canvas.enabled = true;
+            GestorUI.Instance.MoverMenu(0);
+            StartCoroutine(DesactivarCambioPausa());
         }
     }
 
     public void SalirMenu()
     {
-        if(!cambioPausa){
-        mostrarPausa = false;
-        canvas.enabled = false;
-        cambioPausa = true;
-        StartCoroutine(DesactivarCambioPausa());
+        if (!cambioPausa)
+        {
+            mostrarPausa = false;
+            canvas.enabled = false;
+            cambioPausa = true;
+            StartCoroutine(DesactivarCambioPausa());
         }
-    
-
     }
 
     private IEnumerator DesactivarCambioPausa()
@@ -128,8 +178,6 @@ public class ModoPractica : MonoBehaviour
 
     public void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
-        Debug.Log("Botón ejecutado: " + botonSeleccionado);
-
         if (botonSeleccionado == 0)
         {
             SceneManager.LoadScene("PetancaSolitario");
