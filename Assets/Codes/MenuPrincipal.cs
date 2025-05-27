@@ -18,6 +18,8 @@ public class MenuPrincipal : MonoBehaviour
 
         gestorUI.Inicializar(canvas);
         gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+        Application.targetFrameRate = 30;
+
     }
     void Update()
     {

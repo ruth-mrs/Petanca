@@ -55,6 +55,10 @@ public class GestorAudio : MonoBehaviour
         musicaActual.loop = true;
         musicaSiguiente.loop = true;
         musicaSiguiente.volume = 0f;
+
+        // Iniciar volumen al 15%
+        AudioListener.volume = 0.15f;
+        musicaActual.volume = 0.15f;
         
         // Registrar para eventos de cambio de escena
         SceneManager.sceneLoaded += OnSceneLoaded;

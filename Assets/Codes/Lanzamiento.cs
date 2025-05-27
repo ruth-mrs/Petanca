@@ -34,6 +34,8 @@ public class Lanzamiento : MonoBehaviour
     private Vector3 posicionFinalBrazo;
     private PerfilUsuario perfilUsuario;
     private bool kinectListo = false;
+
+    public Animator animator;
     void Start()
     {
         if(isStart){
@@ -48,11 +50,9 @@ public class Lanzamiento : MonoBehaviour
         if (KinectManager.Instance != null && KinectManager.Instance.InicializadoCorrectamente)
         {
             kinectListo = true;
+            KinectManager.Instance.animator = animator;
             Debug.Log("Kinect asignada correctamente desde el script dependiente.");
         }
-        if (!kinectListo) {
-            KinectManager.Instance.InicializarKinect();
-        };
     }
     void Update()
     {

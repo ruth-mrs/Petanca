@@ -41,6 +41,9 @@ public class LanzamientoMultijugador : MonoBehaviour
     private int turno = 1;
     private bool kinectListo = false;
 
+    public Animator animator;
+
+
 void Start()
 {
     if (mano == null)
@@ -71,11 +74,11 @@ void Start()
     if (KinectManager.Instance != null && KinectManager.Instance.InicializadoCorrectamente)
         {
             kinectListo = true;
+            KinectManager.Instance.animator = animator;
             Debug.Log("Kinect asignada correctamente desde el script dependiente.");
         }
-        if (!kinectListo) {
-            KinectManager.Instance.InicializarKinect();
-    };
+        
+       
 }
     
 
