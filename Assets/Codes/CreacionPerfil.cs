@@ -63,8 +63,6 @@ public class CreacionPerfil : MonoBehaviour
     private bool modoEdicion = false;
     private PerfilUsuario perfilEdicion = null;
 
-    // GestorUI
-    private GestorUI gestorUI;
 
     private void Start()
     {
@@ -78,12 +76,7 @@ public class CreacionPerfil : MonoBehaviour
             Debug.LogWarning("No se detectó ningún Wiimote. La calibración podría no funcionar correctamente.");
         }
 
-        // Configurar GestorUI
-        gestorUI = gameObject.GetComponent<GestorUI>();
-        if (gestorUI == null)
-        {
-            gestorUI = gameObject.AddComponent<GestorUI>();
-        }
+
 
         // Comprobar si estamos en modo edición
         modoEdicion = PlayerPrefs.GetInt("ModoEdicion", 0) == 1;
@@ -155,32 +148,32 @@ public class CreacionPerfil : MonoBehaviour
 
             if (wiimote.Button.d_up)
             {
-                if (gestorUI != null)
+                if (GestorUI.Instance != null)
                 {
-                    gestorUI.MoverMenu(-1);
+                    GestorUI.Instance.MoverMenu(-1);
                 }
             }
             else if (wiimote.Button.d_down)
             {
-                if (gestorUI != null)
+                if (GestorUI.Instance != null)
                 {
-                    gestorUI.MoverMenu(1);
+                    GestorUI.Instance.MoverMenu(1);
                 }
             }
 
             if (!wiimote.Button.d_up && !wiimote.Button.d_down)
             {
-                if (gestorUI != null)
+                if (GestorUI.Instance != null)
                 {
-                    gestorUI.LiberarBoton();
+                    GestorUI.Instance.LiberarBoton();
                 }
             }
 
             if (wiimote.Button.a)
             {
-                if (gestorUI != null)
+                if (GestorUI.Instance != null)
                 {
-                    gestorUI.SeleccionarBoton();
+                    GestorUI.Instance.SeleccionarBoton();
                 }
             }
         }
@@ -189,33 +182,33 @@ public class CreacionPerfil : MonoBehaviour
             // Mouse/Keyboard fallback
             if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
             {
-                if (gestorUI != null)
+                if (GestorUI.Instance != null)
                 {
-                    gestorUI.MoverMenu(-1);
+                    GestorUI.Instance.MoverMenu(-1);
                 }
             }
             else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
             {
-                if (gestorUI != null)
+                if (GestorUI.Instance != null)
                 {
-                    gestorUI.MoverMenu(1);
+                    GestorUI.Instance.MoverMenu(1);
                 }
             }
 
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
             {
-                if (gestorUI != null)
+                if (GestorUI.Instance != null)
                 {
-                    gestorUI.SeleccionarBoton();
+                    GestorUI.Instance.SeleccionarBoton();
                 }
             }
 
             if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
                 !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
             {
-                if (gestorUI != null)
+                if (GestorUI.Instance != null)
                 {
-                    gestorUI.LiberarBoton();
+                    GestorUI.Instance.LiberarBoton();
                 }
             }
         }
@@ -300,16 +293,16 @@ public class CreacionPerfil : MonoBehaviour
         if (panelNombrePerfil != null)
             panelNombrePerfil.SetActive(panelActual == panelNombrePerfil);
 
-        // Reinicializar GestorUI para el panel actual
+        // Reinicializar GestorUI.Instance para el panel actual
         InicializarGestorUIParaPanel(panelActual);
     }
 
     private void InicializarGestorUIParaPanel(GameObject panelActual)
     {
-        if (gestorUI != null && canvas != null)
+        if (GestorUI.Instance != null && canvas != null)
         {
             // Remove old event handler only if it was previously assigned
-            gestorUI.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
+            GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
             
             // Wait one frame to ensure the panel is fully active before initializing
             StartCoroutine(InicializarGestorUIConRetraso());
@@ -320,16 +313,16 @@ public class CreacionPerfil : MonoBehaviour
     {
         yield return null; // Wait one frame
         
-        if (gestorUI != null && canvas != null)
+        if (GestorUI.Instance != null && canvas != null)
         {
             try
             {
-                gestorUI.Inicializar(canvas);
-                gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+                GestorUI.Instance.Inicializar(canvas);
+                GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"Error initializing GestorUI: {ex.Message}");
+                Debug.LogError($"Error initializing GestorUI.Instance: {ex.Message}");
             }
         }
     }
@@ -337,7 +330,7 @@ public class CreacionPerfil : MonoBehaviour
     void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
         Debug.Log("Botón ejecutado: " + botonSeleccionado);
-        // El GestorUI ya ejecuta el onClick automáticamente
+        // El GestorUI.Instance ya ejecuta el onClick automáticamente
     }
 
     // Navegación entre paneles

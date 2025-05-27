@@ -12,7 +12,6 @@ public class ModoPractica : MonoBehaviour
     public double distancia = -1.0;
 
     public Canvas canvas;
-    private GestorUI gestorUI;
 
     public GUIStyle estilo;
 
@@ -22,11 +21,10 @@ public class ModoPractica : MonoBehaviour
 
     void Start()
     {
-        gestorUI = GetComponent<GestorUI>();
-        if (gestorUI != null)
+        if (GestorUI.Instance != null)
         {
-            gestorUI.Inicializar(canvas);
-            gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+            GestorUI.Instance.Inicializar(canvas);
+            GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
             canvas.enabled = false;
         }
     }
@@ -73,26 +71,26 @@ public class ModoPractica : MonoBehaviour
     public void moverMenu(int movimiento)
     {
         Debug.Log("Movimiento del menú: " + movimiento);
-        if (gestorUI != null)
+        if (GestorUI.Instance != null)
         {
-            gestorUI.MoverMenu(movimiento);
+            GestorUI.Instance.MoverMenu(movimiento);
         }
     }
 
 
     public void SeleccionarBoton()
     {
-        if (gestorUI != null)
+        if (GestorUI.Instance != null)
         {
-            gestorUI.SeleccionarBoton();
+            GestorUI.Instance.SeleccionarBoton();
         }
     }
 
     public void LiberarBoton()
     {
-        if (gestorUI != null)
+        if (GestorUI.Instance != null)
         {
-            gestorUI.LiberarBoton();
+            GestorUI.Instance.LiberarBoton();
         }
     }
 
@@ -105,7 +103,7 @@ public class ModoPractica : MonoBehaviour
     
        mostrarPausa = true;
        canvas.enabled = true;
-        gestorUI.MoverMenu(0);
+       GestorUI.Instance.MoverMenu(0);
          StartCoroutine(DesactivarCambioPausa());
         }
     }

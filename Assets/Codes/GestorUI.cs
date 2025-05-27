@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 using System.Collections.Generic;
+using System.Collections;
 
 public class GestorUI : MonoBehaviour
 {
@@ -10,7 +11,20 @@ public class GestorUI : MonoBehaviour
 
     public Action<int> OnBotonSeleccionado; // Evento para ejecutar la acción del botón seleccionado
     private bool botonProcesado = false;
+   public static GestorUI Instance { get; private set; }
 
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
 
 
     public void Inicializar(Canvas canvas)
@@ -28,6 +42,7 @@ public class GestorUI : MonoBehaviour
 
     public void MoverMenu(int movimiento)
     {
+        if( movimiento == 0) botonSeleccionado = 0;
         if (botones.Count == 0 || botonProcesado) return;
 
 
@@ -44,11 +59,14 @@ public class GestorUI : MonoBehaviour
 
     public void SeleccionarBoton()
     {
-        if (botones.Count == 0) return;
+        Debug.Log("Botón seleccionado: " + botonSeleccionado);
+        if (botones.Count == 0 || botonProcesado) return;
 
         botones[botonSeleccionado].onClick.Invoke();
 
         OnBotonSeleccionado?.Invoke(botonSeleccionado);
+
+        botonProcesado = true;
 
     }
 
@@ -56,8 +74,6 @@ public class GestorUI : MonoBehaviour
     {
         botonProcesado = false;
     }
-
-
 
     private void ActualizarSeleccion()
     {

@@ -38,6 +38,9 @@ public class Lanzamiento : MonoBehaviour
 
     public Animator animator;
 
+    private float tiempoEspera = 3f;
+
+
     void Start()
     {
         if(isStart){
@@ -81,6 +84,7 @@ public class Lanzamiento : MonoBehaviour
                 
                 }else if(wiimote.Button.a){                
                     modoPractica.SeleccionarBoton();
+
 
                 }
                 
@@ -146,8 +150,10 @@ public class Lanzamiento : MonoBehaviour
         if (rbBola != null)
         {
             if(!bolaEnganchada){
+                if(!rbBola.isKinematic){
                 rbBola.linearVelocity = Vector3.zero;
                 rbBola.angularVelocity = Vector3.zero;
+                }
                 rbBola.isKinematic = true;
                 bolaEnganchada = true;
             }
@@ -160,14 +166,11 @@ public class Lanzamiento : MonoBehaviour
     {
         if (rbBola != null)
         {   
-            // Obtener las posiciones del brazo
             var (pecho, muñeca) = KinectManager.Instance.ObtenerDireccionBrazoExtendido();
             Vector3 direccionCruda = (muñeca - pecho).normalized;
 
-                        // Validar que la dirección tenga longitud suficiente
             if (direccionCruda.magnitude < 0.1f || float.IsNaN(direccionCruda.magnitude))
             {
-                // Si es muy corta o errónea, usar alternativa
                 var (hombro, codo, muñeca2) = KinectManager.Instance.ObtenerUltimasPosicionesBrazo();
                 direccionCruda = (muñeca2 - hombro);
             }
@@ -180,17 +183,13 @@ public class Lanzamiento : MonoBehaviour
 
             Vector3 direccionLanzamiento = direccionConAltura;
     
-            // Calcular la rapidez del movimiento de la mano
             float[] accel = wiimote.Accel.GetCalibratedAccelData();
             float rapidezMovimiento = Mathf.Sqrt(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
     
-            // Escalar la velocidad inicial de la bola
             float fuerzaLanzamiento = rapidezMovimiento * perfilUsuario.getFuerzaBase();
     
             bolaEnganchada = false;
-    
             rbBola.isKinematic = false;
-            // Aplicar la velocidad inicial a la bola
             rbBola.linearVelocity = direccionLanzamiento * fuerzaLanzamiento;
     
             if (isStart)
@@ -216,15 +215,9 @@ public class Lanzamiento : MonoBehaviour
     {
         puedeLanzar = false;
 
-        posicionInicialCamara = Camera.main.transform.position;
-        rotacionInicialCamara = Camera.main.transform.rotation;    
-
-        CamaraSeguirBola camaraSeguir = Camera.main.GetComponent<CamaraSeguirBola>();
-
-        camaraSeguir.ActualizarBola(rbBola.transform);
+        var camaraSeguir = SeguirCamara();
 
 
-        float tiempoEspera = 3f;
         float tiempoTranscurrido = 0f;
 
         while (tiempoTranscurrido < tiempoEspera)
@@ -233,44 +226,32 @@ public class Lanzamiento : MonoBehaviour
             yield return null;
         }
 
-        camaraSeguir.DetenerSeguimiento();
-        Camera.main.transform.position = posicionInicialCamara;
-        Camera.main.transform.rotation = rotacionInicialCamara;
+        RecuperarCamara(camaraSeguir);
 
 
         if(EstaDentroDeLaPista(Boliche.transform.position))
         {
             isStart = false;
-            
-            rbBola = Instantiate(Bola, Bola.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
-            rbBola.gameObject.tag = "Bola";
+            InstanciarBola();
         }
-
-      
-        
         puedeLanzar = true;
     }
 
     private IEnumerator EsperarYFinalizarJuego()
     {
-        CamaraSeguirBola camaraSeguir = Camera.main.GetComponent<CamaraSeguirBola>();
+       
+        puedeLanzar = false;
 
-        camaraSeguir.ActualizarBola(rbBola.transform);
-
-        float tiempoEspera = 3f;
+        var camaraSeguir = SeguirCamara();
         float tiempoTranscurrido = 0f;
 
         while (tiempoTranscurrido < tiempoEspera)
         {
             tiempoTranscurrido += Time.deltaTime;
-            yield return null; // Esperar al siguiente frame
+            yield return null;
         }
 
-        camaraSeguir.DetenerSeguimiento();
-
-        Camera.main.transform.position = posicionInicialCamara;
-        Camera.main.transform.rotation = rotacionInicialCamara;
-
+        RecuperarCamara(camaraSeguir);
         modoPractica.FinJuego();
     }
 
@@ -280,11 +261,7 @@ public class Lanzamiento : MonoBehaviour
         {
             puedeLanzar = false;
 
-            CamaraSeguirBola camaraSeguir = Camera.main.GetComponent<CamaraSeguirBola>();
-
-            camaraSeguir.ActualizarBola(rbBola.transform);
-
-            float tiempoEspera = 3f;
+            var camaraSeguir = SeguirCamara();
             float tiempoTranscurrido = 0f;
 
             while (tiempoTranscurrido < tiempoEspera)
@@ -294,16 +271,40 @@ public class Lanzamiento : MonoBehaviour
             }
 
             CalcularPuntuacion();
-
-            camaraSeguir.DetenerSeguimiento();
-            Camera.main.transform.position = posicionInicialCamara;
-            Camera.main.transform.rotation = rotacionInicialCamara;
-            rbBola = Instantiate(Bola, Bola.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
-            rbBola.gameObject.tag = "Bola";
-        
+            RecuperarCamara(camaraSeguir);
+            InstanciarBola();        
             puedeLanzar = true;
             
         }
+    }
+
+
+    private CamaraSeguirBola SeguirCamara()
+    {
+        posicionInicialCamara = Camera.main.transform.position;
+        rotacionInicialCamara = Camera.main.transform.rotation;
+
+        CamaraSeguirBola camaraSeguir = Camera.main.GetComponent<CamaraSeguirBola>();
+
+        camaraSeguir.ActualizarBola(rbBola.transform);
+
+        return camaraSeguir;
+    }
+
+    private void RecuperarCamara(CamaraSeguirBola camaraSeguir)
+    {
+        camaraSeguir.DetenerSeguimiento();
+        Camera.main.transform.position = posicionInicialCamara;
+        Camera.main.transform.rotation = rotacionInicialCamara;
+
+    }
+
+    private void InstanciarBola(){
+        rbBola = Instantiate(Bola, Bola.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
+        rbBola.gameObject.tag = "Bola";
+        rbBola.linearVelocity = Vector3.zero;
+        rbBola.angularVelocity = Vector3.zero;
+        rbBola.isKinematic = true;
     }
 
     public void CalcularPuntuacion()

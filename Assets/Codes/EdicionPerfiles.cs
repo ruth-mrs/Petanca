@@ -35,8 +35,7 @@ public class EdicionPerfiles : MonoBehaviour
     private PerfilUsuario perfilSeleccionado;
     private int indicePerfilSeleccionado = 0;
     
-    // GestorUI
-    private GestorUI gestorUI;
+    // GestorUI.Instance
     
     private void Start()
     {
@@ -47,14 +46,8 @@ public class EdicionPerfiles : MonoBehaviour
             return;
         }
         
-        // Configurar GestorUI
-        gestorUI = gameObject.GetComponent<GestorUI>();
-        if (gestorUI == null)
-        {
-            gestorUI = gameObject.AddComponent<GestorUI>();
-        }
-        gestorUI.Inicializar(canvas);
-        gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+        GestorUI.Instance.Inicializar(canvas);
+        GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
         
         // Cargar lista de perfiles
         CargarListaPerfiles();
@@ -99,11 +92,11 @@ public class EdicionPerfiles : MonoBehaviour
             // Control de navegación con D-pad para botones
             if (wiimote.Button.d_up)
             {
-                gestorUI.MoverMenu(-1);
+                GestorUI.Instance.MoverMenu(-1);
             }
             else if (wiimote.Button.d_down)
             {
-                gestorUI.MoverMenu(1);
+                GestorUI.Instance.MoverMenu(1);
             }
 
             // Control de scroll de perfiles con botones 1 y 2
@@ -121,13 +114,13 @@ public class EdicionPerfiles : MonoBehaviour
             // Liberar estado de botones
             if (!wiimote.Button.d_up && !wiimote.Button.d_down)
             {
-                gestorUI.LiberarBoton();
+                GestorUI.Instance.LiberarBoton();
             }
 
             // Seleccionar con botón A
             if (wiimote.Button.a)
             {
-                gestorUI.SeleccionarBoton();
+                GestorUI.Instance.SeleccionarBoton();
             }
         }
         else
@@ -135,11 +128,11 @@ public class EdicionPerfiles : MonoBehaviour
             // Keyboard/Mouse fallback controls
             if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
             {
-                gestorUI.MoverMenu(-1);
+                GestorUI.Instance.MoverMenu(-1);
             }
             else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
             {
-                gestorUI.MoverMenu(1);
+                GestorUI.Instance.MoverMenu(1);
             }
 
             // Profile navigation with left/right arrows or A/D keys
@@ -155,12 +148,12 @@ public class EdicionPerfiles : MonoBehaviour
             if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
                 !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
             {
-                gestorUI.LiberarBoton();
+                GestorUI.Instance.LiberarBoton();
             }
 
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
             {
-                gestorUI.SeleccionarBoton();
+                GestorUI.Instance.SeleccionarBoton();
             }
         }
     }
@@ -168,7 +161,7 @@ public class EdicionPerfiles : MonoBehaviour
     void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
         Debug.Log("Botón ejecutado: " + botonSeleccionado);
-        // El GestorUI ya ejecuta el onClick automáticamente
+        // El GestorUI.Instance ya ejecuta el onClick automáticamente
     }
     
     // Nuevo método para cambiar perfil seleccionado con botones 1 y 2

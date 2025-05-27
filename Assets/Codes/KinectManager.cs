@@ -156,7 +156,7 @@ public class KinectManager : MonoBehaviour
         float elbowAngle = Vector3.Angle(upperArm, forearm);
 
               Transform upperArmBone = animator.GetBoneTransform(esZurdo ? HumanBodyBones.LeftUpperArm : HumanBodyBones.RightUpperArm);
-    Transform lowerArmBone = animator.GetBoneTransform(esZurdo ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm);
+            Transform lowerArmBone = animator.GetBoneTransform(esZurdo ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm);
             if (upperArmBone && lowerArmBone)
             {
             Quaternion upperArmRotation = Quaternion.LookRotation(upperArm);

@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using TMPro;
 
 public class ModoMultijugador : MonoBehaviour
 {
@@ -17,7 +18,6 @@ public class ModoMultijugador : MonoBehaviour
 
 
     public Canvas canvas;
-    private GestorUI gestorUI;
 
     public GUIStyle estilo;
 
@@ -25,48 +25,38 @@ public class ModoMultijugador : MonoBehaviour
     public bool mostrarPausa = false;
     private bool cambioPausa = false;
 
+     public TMP_Text textoJ1Nombre, textoJ1Bolas, textoJ1Distancia;
+    public TMP_Text textoJ2Nombre, textoJ2Bolas, textoJ2Distancia;
+    public GameObject coronaJ1, coronaJ2;
+    public LineRenderer lineaJ1, lineaJ2;
+    public GameObject panelResultado;
+    public TMP_Text textoGanador, textoDistanciaGanadora;
+
+    private Vector3 posBolaJ1 = Vector3.zero;
+    private Vector3 posBolaJ2 = Vector3.zero;
+    private Vector3 posBoliche = Vector3.zero;
+
     void Start()
     {
-      gestorUI = GetComponent<GestorUI>();
-        if (gestorUI != null)
+        if (GestorUI.Instance != null)
         {
-            gestorUI.Inicializar(canvas);
-            gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+            GestorUI.Instance.Inicializar(canvas);
+            GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
             canvas.enabled = false;
 
+            if (textoJ1Nombre) textoJ1Nombre.text = "JUGADOR 1";
+            if (textoJ2Nombre) textoJ2Nombre.text = "JUGADOR 2";
+            ActualizarUI();
 
         }
 
-    }
+    }    
 
-    void OnGUI()
+    void Update()
     {
-        GUI.Label(new Rect(20, 100, 180, 30), "Bolas restantes J1: " + bolasRestantesJ1, estilo);
-        GUI.Label(new Rect(20, 130, 180, 30), "Bolas restantes J2: " + bolasRestantesJ2, estilo);
-
-        if(distanciaJ1 == -1.0 && distanciaJ2 == -1.0){
-            GUI.Label(new Rect(20, 70, 180, 30), "Distancia al boliche: Aún falta por lanzar ", estilo);
-        }else{    
-            if(distanciaJ1 == -1.0){
-                GUI.Label(new Rect(20, 70, 180, 30), "Distancia mas cercana J2: " + distanciaJ2.ToString("F2") +" metros", estilo);
-            }else if(distanciaJ2 == -1.0){
-                GUI.Label(new Rect(20, 70, 180, 30), "Distancia mas cercana J1: " + distanciaJ1.ToString("F2") +" metros", estilo);
-            }else if(distanciaJ1 < distanciaJ2){
-                GUI.Label(new Rect(20, 70, 180, 30), "La bola mas cercana es de J1: " + distanciaJ1.ToString("F2") +" metros", estilo);
-            }else{
-                GUI.Label(new Rect(20, 70, 180, 30), "Distancia mas cercana es de J2: " + distanciaJ2.ToString("F2") +" metros", estilo);
-            }
-           
-        }  
-
-
-     
-    }
-    
-
-    public void noController()
-    {
-        GUI.Label(new Rect(10, 120, 200, 30), "No se detectó el controlador.", estilo);
+        ActualizarUI();
+        ActualizarCoronas();
+        ActualizarLineas();
     }
 
     public void ActualizarDistancia(double nuevaDistancia, int jugador)
@@ -82,9 +72,9 @@ public class ModoMultijugador : MonoBehaviour
     }
   
     public void FinJuego(){
-        Debug.Log("Fin del juego");
         mostrarFinJuego = true;
         canvas.enabled = true;
+        MostrarPanelResultado();
         
     }
 
@@ -99,31 +89,121 @@ public class ModoMultijugador : MonoBehaviour
         {
             bolasRestantesJ2--;
         }
+
+        ActualizarUI();
     }
- 
+
+     private void ActualizarUI()
+    {
+        if (textoJ1Bolas) textoJ1Bolas.text = $"Bolas: {bolasRestantesJ1}";
+        if (textoJ2Bolas) textoJ2Bolas.text = $"Bolas: {bolasRestantesJ2}";
+
+        if (textoJ1Distancia)
+        {
+            textoJ1Distancia.text = distanciaJ1 == -1.0 ? "Distancia: --" : $"Distancia: {distanciaJ1:F2} m";
+        }
+        if (textoJ2Distancia)
+        {
+            textoJ2Distancia.text = distanciaJ2 == -1.0 ? "Distancia: --" : $"Distancia: {distanciaJ2:F2} m";
+        }
+    }
+
+    private void ActualizarCoronas()
+    {
+        if (coronaJ1 && coronaJ2)
+        {
+            if (distanciaJ1 != -1.0 && (distanciaJ1 < distanciaJ2 || distanciaJ2 == -1.0))
+            {
+                coronaJ1.SetActive(true);
+                coronaJ2.SetActive(false);
+            }
+            else if (distanciaJ2 != -1.0)
+            {
+                coronaJ1.SetActive(false);
+                coronaJ2.SetActive(true);
+            }
+            else
+            {
+                coronaJ1.SetActive(false);
+                coronaJ2.SetActive(false);
+            }
+        }
+    }
+
+    private void ActualizarLineas()
+    {
+        if (lineaJ1 && posBolaJ1 != Vector3.zero && posBoliche != Vector3.zero)
+        {
+            lineaJ1.enabled = true;
+            lineaJ1.positionCount = 2;
+            lineaJ1.SetPosition(0, new Vector3(posBolaJ1.x, 0.05f, posBolaJ1.z));
+            lineaJ1.SetPosition(1, new Vector3(posBoliche.x, 0.05f, posBoliche.z));
+        }
+        else if (lineaJ1)
+        {
+            lineaJ1.enabled = false;
+        }
+
+        if (lineaJ2 && posBolaJ2 != Vector3.zero && posBoliche != Vector3.zero)
+        {
+            lineaJ2.enabled = true;
+            lineaJ2.positionCount = 2;
+            lineaJ2.SetPosition(0, new Vector3(posBolaJ2.x, 0.05f, posBolaJ2.z));
+            lineaJ2.SetPosition(1, new Vector3(posBoliche.x, 0.05f, posBoliche.z));
+        }
+        else if (lineaJ2)
+        {
+            lineaJ2.enabled = false;
+        }
+    }
+
+    private void MostrarPanelResultado()
+    {
+        if (panelResultado && textoGanador && textoDistanciaGanadora)
+        {
+            panelResultado.SetActive(true);
+            if (distanciaJ1 != -1.0 && (distanciaJ1 < distanciaJ2 || distanciaJ2 == -1.0))
+            {
+                textoGanador.text = "¡Ganador: JUGADOR 1!";
+                textoGanador.color = new Color32(0x04, 0x6e, 0xc9, 255); // #046ec9
+                textoDistanciaGanadora.text = $"Distancia más cercana: {distanciaJ1:F2} m";
+            }
+            else if (distanciaJ2 != -1.0)
+            {
+                textoGanador.text = "¡Ganador: JUGADOR 2!";
+                textoGanador.color = new Color32(0xc5, 0x32, 0x2a, 255); // #c5322a
+                textoDistanciaGanadora.text = $"Distancia más cercana: {distanciaJ2:F2} m";
+            }
+            else
+            {
+                textoGanador.text = "¡Empate!";
+                textoDistanciaGanadora.text = "";
+            }
+        }
+    }
 
     public void moverMenu(int movimiento)
     {
         Debug.Log("Movimiento del menú: " + movimiento);
-        if (gestorUI != null)
+        if (GestorUI.Instance != null)
         {
-            gestorUI.MoverMenu(movimiento);
+            GestorUI.Instance.MoverMenu(movimiento);
         }
     }
 
     public void SeleccionarBoton()
     {
-        if (gestorUI != null)
+        if (GestorUI.Instance != null)
         {
-            gestorUI.SeleccionarBoton();
+            GestorUI.Instance.SeleccionarBoton();
         }
     }
 
     public void LiberarBoton()
     {
-        if (gestorUI != null)
+        if (GestorUI.Instance != null)
         {
-            gestorUI.LiberarBoton();
+            GestorUI.Instance.LiberarBoton();
         }
     }
 
@@ -131,22 +211,21 @@ public class ModoMultijugador : MonoBehaviour
     {
         if(!cambioPausa)
         {
-        cambioPausa = true;
-    
-       mostrarPausa = true;
-       canvas.enabled = true;
-        gestorUI.MoverMenu(0);
-         StartCoroutine(DesactivarCambioPausa());
+            cambioPausa = true;
+            mostrarPausa = true;
+            canvas.enabled = true;
+            GestorUI.Instance.MoverMenu(0);
+            StartCoroutine(DesactivarCambioPausa());
         }
     }
 
     public void SalirMenu()
     {
         if(!cambioPausa){
-        mostrarPausa = false;
-        canvas.enabled = false;
-        cambioPausa = true;
-        StartCoroutine(DesactivarCambioPausa());
+            mostrarPausa = false;
+            canvas.enabled = false;
+            cambioPausa = true;
+            StartCoroutine(DesactivarCambioPausa());
         }
     
 
@@ -161,7 +240,6 @@ public class ModoMultijugador : MonoBehaviour
 
     public void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
-        Debug.Log("Botón ejecutado: " + botonSeleccionado);
 
         if (botonSeleccionado == 0)
         {

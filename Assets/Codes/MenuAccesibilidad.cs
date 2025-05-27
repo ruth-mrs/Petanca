@@ -44,7 +44,6 @@ public class MenuAccesibilidad : MonoBehaviour
     public Sprite[] imagenesEjemplo;
     
     [Header("UI")]
-    private GestorUI gestorUI;
     public Canvas canvas;
     
     // Variables privadas
@@ -60,14 +59,8 @@ public class MenuAccesibilidad : MonoBehaviour
         ConfigurarBotones();
         CargarFiltroGuardado();
         
-        // Configurar GestorUI
-        gestorUI = gameObject.GetComponent<GestorUI>();
-        if (gestorUI == null)
-        {
-            gestorUI = gameObject.AddComponent<GestorUI>();
-        }
-        gestorUI.Inicializar(canvas);
-        gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+        GestorUI.Instance.Inicializar(canvas);
+        GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
     }
     
     void Update()
@@ -85,23 +78,23 @@ public class MenuAccesibilidad : MonoBehaviour
             // Control de navegación con D-pad
             if (wiimote.Button.d_up)
             {
-                gestorUI.MoverMenu(-1);
+                GestorUI.Instance.MoverMenu(-1);
             }
             else if (wiimote.Button.d_down)
             {
-                gestorUI.MoverMenu(1);
+                GestorUI.Instance.MoverMenu(1);
             }
 
             // Liberar estado de botones
             if (!wiimote.Button.d_up && !wiimote.Button.d_down)
             {
-                gestorUI.LiberarBoton();
+                GestorUI.Instance.LiberarBoton();
             }
 
             // Seleccionar con botón A
             if (wiimote.Button.a)
             {
-                gestorUI.SeleccionarBoton();
+                GestorUI.Instance.SeleccionarBoton();
             }
         }
         else
@@ -109,22 +102,22 @@ public class MenuAccesibilidad : MonoBehaviour
             // Keyboard/Mouse fallback controls
             if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
             {
-                gestorUI.MoverMenu(-1);
+                GestorUI.Instance.MoverMenu(-1);
             }
             else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
             {
-                gestorUI.MoverMenu(1);
+                GestorUI.Instance.MoverMenu(1);
             }
 
             if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
                 !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
             {
-                gestorUI.LiberarBoton();
+                GestorUI.Instance.LiberarBoton();
             }
 
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
             {
-                gestorUI.SeleccionarBoton();
+                GestorUI.Instance.SeleccionarBoton();
             }
         }
     }
@@ -178,7 +171,7 @@ public class MenuAccesibilidad : MonoBehaviour
     void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
         Debug.Log("Botón ejecutado: " + botonSeleccionado);
-        // El GestorUI ya ejecuta el onClick automáticamente
+        // El GestorUI.Instance ya ejecuta el onClick automáticamente
     }
     
     private void SeleccionarFiltro(TipoDaltonismo tipo)

@@ -7,17 +7,15 @@ using UnityEngine.SceneManagement;
 public class MenuPrincipal : MonoBehaviour
 {
 
-    private GestorUI gestorUI;
     public Wiimote wiimote2;
     public Canvas canvas;
 
 
     void Start()
     {
-        gestorUI = gameObject.GetComponent<GestorUI>();
 
-        gestorUI.Inicializar(canvas);
-        gestorUI.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+        GestorUI.Instance.Inicializar(canvas);
+        GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
         Application.targetFrameRate = 30;
 
     }
@@ -35,21 +33,21 @@ public class MenuPrincipal : MonoBehaviour
 
             if (wiimote.Button.d_up)
             {
-                gestorUI.MoverMenu(-1);
+                GestorUI.Instance.MoverMenu(-1);
             }
             else if (wiimote.Button.d_down)
             {
-                gestorUI.MoverMenu(1);
+                GestorUI.Instance.MoverMenu(1);
             }
 
             if (!wiimote.Button.d_up && !wiimote.Button.d_down)
             {
-                gestorUI.LiberarBoton();
+                GestorUI.Instance.LiberarBoton();
             }
 
             if (wiimote.Button.a)
             {
-                gestorUI.SeleccionarBoton();
+                GestorUI.Instance.SeleccionarBoton();
             }
         }
         else
@@ -57,22 +55,22 @@ public class MenuPrincipal : MonoBehaviour
             // Controles alternativos para teclado/rato
             if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
             {
-                gestorUI.MoverMenu(-1);
+                GestorUI.Instance.MoverMenu(-1);
             }
             else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
             {
-                gestorUI.MoverMenu(1);
+                GestorUI.Instance.MoverMenu(1);
             }
 
             if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
                 !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
             {
-                gestorUI.LiberarBoton();
+                GestorUI.Instance.LiberarBoton();
             }
 
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
             {
-                gestorUI.SeleccionarBoton();
+                GestorUI.Instance.SeleccionarBoton();
             }
         }
     }
