@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 
 public class LanzamientoMultijugador : MonoBehaviour
 {
- public GameObject Bola;
+    public GameObject Bola;
 
     public Wiimote wiimote;
 
@@ -27,166 +27,202 @@ public class LanzamientoMultijugador : MonoBehaviour
     public ModoMultijugador modoMultijugador;
 
     public double distanciaAlBoliche = -1.0;
-    private bool puedeLanzar = true;    
+    private bool puedeLanzar = true;
 
     private Vector3 posicionInicialCamara;
     private Quaternion rotacionInicialCamara;
     private Vector3 posicionInicialBrazo;
     private Vector3 posicionFinalBrazo;
 
-    private PerfilUsuario perfilUsuario;
+    public PerfilUsuario perfilUsuario;
 
-    private PerfilUsuario perfilUsuario2;
+    public PerfilUsuario perfilUsuario2;
 
     private int turno = 1;
-    private bool kinectListo = false;
 
     public Animator animator;
 
+    private Vector3 limiteInferiorPista = new Vector3(-2, 0.05f, 7.78f);
+    private Vector3 limiteSuperiorPista = new Vector3(2, 0.05f, 22.78f);
 
-void Start()
-{
-    if (mano == null)
+    public GameObject cuerpo;
+    public GameObject piernas;
+
+    public Material azul;
+    public Material rojo;
+
+    void Start()
     {
-        mano = GameObject.Find("Mano");
         if (mano == null)
         {
-            Debug.LogError("No se encontró el objeto 'Mano'. Asegúrate de que exista en la escena.");
-        }
+            mano = GameObject.Find("Mano");
+            if (mano == null)
+            {
+                Debug.LogError("No se encontró el objeto 'Mano'. Asegúrate de que exista en la escena.");
+            }
+        }        
 
-    }
-
-       if(isStart){
-        rbBola = Boliche.GetComponent<Rigidbody>();
+        if (isStart)
+        {
+            rbBola = Boliche.GetComponent<Rigidbody>();
             if (rbBola != null)
-        {
-        rbBola.linearVelocity = Vector3.zero;
-        rbBola.angularVelocity = Vector3.zero;
+            {
+                rbBola.linearVelocity = Vector3.zero;
+                rbBola.angularVelocity = Vector3.zero;
 
-  
-            perfilUsuario2 = GameObject.Find("PerfilUsuario2").GetComponent<PerfilUsuario>();
-            perfilUsuario2.setFuerzaBase(10f);
-            perfilUsuario = GameObject.Find("PerfilUsuario").GetComponent<PerfilUsuario>();
+            }
+
+            perfilUsuario = new PerfilUsuario("Jugador 1", false, false);
+            perfilUsuario2 = new PerfilUsuario("Jugador 2", true, false);
+
         }
-        
-    }
 
-    if (KinectManager.Instance != null && KinectManager.Instance.InicializadoCorrectamente)
+        if (KinectManager.Instance != null && KinectManager.Instance.InicializadoCorrectamente)
         {
-            kinectListo = true;
             KinectManager.Instance.animator = animator;
             Debug.Log("Kinect asignada correctamente desde el script dependiente.");
         }
+    }
+
+    void Update()
+    {
+
+        if (turno % 2 == 0){
+            wiimote = GestorWiimotes.Instance?.wiimote2;
+            if (perfilUsuario2.esZurdo)
+            {
+                mano = GameObject.Find("mixamorig7:LeftHandMiddle1");
+                KinectManager.Instance.esZurdo = true;                  
+            }
+            else
+            {
+                mano = GameObject.Find("mixamorig7:RightHandMiddle1");
+                KinectManager.Instance.esZurdo = false;
+            }
+
+            Renderer renderer = cuerpo.GetComponent<Renderer>();
+            renderer.material = rojo;     
+            renderer = piernas.GetComponent<Renderer>();
+            renderer.material = rojo;              
+
+
         
-       
-}
-    
-
-void Update()
-{
-
-    if(turno % 2 == 0){
-        wiimote = GestorWiimotes.Instance?.wiimote2;
     }else{
         wiimote = GestorWiimotes.Instance?.wiimote;
-    }
-    if (wiimote != null)
-    {
-        
-        if(modoMultijugador.mostrarFinJuego)
-        {
-            if(wiimote.Button.d_up){
-                Debug.Log("Botón d_up presionado");
-                modoMultijugador.moverMenu(-1);
-            }
-            else if(wiimote.Button.d_down){
-                Debug.Log("Botón d_down presionado");
-                modoMultijugador.moverMenu(1);
-            
-            }else if(wiimote.Button.a){
-                modoMultijugador.SeleccionarBoton();
-            }
-            if (!wiimote.Button.d_up && !wiimote.Button.d_down)
-            {
-                modoMultijugador.LiberarBoton();
-            }
-        }
-
-        if (modoMultijugador.mostrarPausa){
-            if (wiimote.Button.d_up)
-            {
-                Debug.Log("Botón d_up presionado");
-                modoMultijugador.moverMenu(-1);
-            }
-            else if (wiimote.Button.d_down)
-            {
-                Debug.Log("Botón d_down presionado");
-                modoMultijugador.moverMenu(1);
-            }
-            else if (wiimote.Button.a)
-            {
-                modoMultijugador.SeleccionarBoton();
-            }else if (wiimote.Button.plus)
-            {
-                modoMultijugador.SalirMenu();
-            }
-            if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.plus)
-            {
-                modoMultijugador.LiberarBoton();
-            }
+        if (perfilUsuario.esZurdo){
+            mano = GameObject.Find("mixamorig7:LeftHandMiddle1");
+            KinectManager.Instance.esZurdo = true;
         }else{
-      
-
-        
-        if(puedeLanzar){
-        int ret;
-        do
-        {
-            ret = wiimote.ReadWiimoteData();
-        } while (ret > 0);
-    
- 
-        if (wiimote.Button.b)
-        {
-            EngancharBola();
+            mano = GameObject.Find("mixamorig7:RightHandMiddle1");
+            KinectManager.Instance.esZurdo = false;
         }
-        else if (!wiimote.Button.b && bolaEnganchada)
+
+        Renderer renderer = cuerpo.GetComponent<Renderer>();
+        renderer.material = azul;
+        renderer = piernas.GetComponent<Renderer>();
+        renderer.material = azul;
+        
+    }
+
+    if (wiimote != null){
+
+    if (modoMultijugador.mostrarFinJuego)
+    {
+        if (wiimote.Button.d_up)
         {
-            if(modoMultijugador != null && !isStart)
+            modoMultijugador.moverMenu(-1);
+        }
+        else if (wiimote.Button.d_down)
+        {
+            modoMultijugador.moverMenu(1);
+
+        }
+        else if (wiimote.Button.a)
+        {
+            modoMultijugador.SeleccionarBoton();
+        }
+        if (!wiimote.Button.d_up && !wiimote.Button.d_down)
+        {
+            modoMultijugador.LiberarBoton();
+        }
+    }
+
+    if (modoMultijugador.mostrarPausa)
+    {
+        if (wiimote.Button.d_up)
+        {
+            modoMultijugador.moverMenu(-1);
+        }
+        else if (wiimote.Button.d_down)
+        {
+            modoMultijugador.moverMenu(1);
+        }
+        else if (wiimote.Button.a)
+        {
+            modoMultijugador.SeleccionarBoton();
+        }
+        else if (wiimote.Button.plus)
+        {
+            modoMultijugador.SalirMenu();
+        }
+        if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.plus)
+        {
+            modoMultijugador.LiberarBoton();
+        }
+    }
+    else
+    {
+        if (puedeLanzar)
+        {
+            int ret;
+            do
             {
-                if(turno % 2 == 0){
-                    modoMultijugador.ReducirBolas(2);
-                }else{
-                    modoMultijugador.ReducirBolas(1);
-                }
+                ret = wiimote.ReadWiimoteData();
+            } while (ret > 0);
+
+
+            if (wiimote.Button.b)
+            {
+                EngancharBola();
             }
-            SoltarBola();
-       
-        
-        }else if(wiimote.Button.plus && !modoMultijugador.mostrarPausa && !modoMultijugador.mostrarFinJuego){
+            else if (!wiimote.Button.b && bolaEnganchada)
+            {
+                if (modoMultijugador != null && !isStart)
+                {
+                    if (turno % 2 == 0)
+                    {
+                        modoMultijugador.ReducirBolas(2);
+                    }
+                    else
+                    {
+                        modoMultijugador.ReducirBolas(1);
+                    }
+                }
+                SoltarBola();
+
+
+            }
+            else if (wiimote.Button.plus && !modoMultijugador.mostrarPausa && !modoMultijugador.mostrarFinJuego)
+            {
                 modoMultijugador.PausarJuego();
-        }
+            }
         }
     }
-    }
-
 }
+    }
 
 
-void EngancharBola()
-{
+void EngancharBola(){
     if (rbBola != null)
     {
-        if(!bolaEnganchada){
-                posicionInicialBrazo = ObtenerPosicionBrazo();
+        if (!bolaEnganchada)
+        {
+            rbBola.linearVelocity = Vector3.zero;
+            rbBola.angularVelocity = Vector3.zero;
+            rbBola.isKinematic = true;
+            bolaEnganchada = true;
         }
-        bolaEnganchada = true;
-        rbBola.isKinematic = true;
-
-       rbBola.transform.position = mano.transform.position - new Vector3(0,0.1f,0); 
-
-        
-
+        rbBola.transform.position = mano.transform.position - new Vector3(0, 0.1f, 0);
     }
 }
 
@@ -194,44 +230,55 @@ void SoltarBola()
 {
     if (rbBola != null)
     {
-        bolaEnganchada = false;
+        var (pecho, muñeca) = KinectManager.Instance.ObtenerDireccionBrazoExtendido();
+        Vector3 direccionCruda = (muñeca - pecho).normalized;
 
-        rbBola.isKinematic = false; 
+        if (direccionCruda.magnitude < 0.1f || float.IsNaN(direccionCruda.magnitude))
+        {
+            var (hombro, codo, muñeca2) = KinectManager.Instance.ObtenerUltimasPosicionesBrazo();
+            direccionCruda = (muñeca2 - hombro);
+        }
+
+        Vector3 direccionConAltura = new Vector3(direccionCruda.x, Mathf.Max(direccionCruda.y, 0.3f), direccionCruda.z).normalized;
+
+        Vector3 direccionLanzamiento = direccionConAltura;
 
         float[] accel = wiimote.Accel.GetCalibratedAccelData();
         float rapidezMovimiento = Mathf.Sqrt(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
 
-
         float fuerzaLanzamiento = 0f;
-        if(turno % 2 == 0){
+        if (turno % 2 == 0)
+        {
             fuerzaLanzamiento = rapidezMovimiento * perfilUsuario2.getFuerzaBase();
-        }else if (turno % 2 == 1){
+        }
+        else if (turno % 2 == 1)
+        {
             fuerzaLanzamiento = rapidezMovimiento * perfilUsuario.getFuerzaBase();
         }
-        Debug.Log($"Fuerza de lanzamiento: {perfilUsuario.getFuerzaBase()}");
-        // Aplicar la velocidad inicial a la Bola
-        posicionFinalBrazo = ObtenerPosicionBrazo();
-        Vector3 direccionLanzamiento = (posicionFinalBrazo - posicionInicialBrazo).normalized;
+
+        bolaEnganchada = false;
+        rbBola.isKinematic = false;
         rbBola.linearVelocity = direccionLanzamiento * fuerzaLanzamiento;
-        Debug.Log($"Dirección de lanzamiento: {direccionLanzamiento}, Rapidez: {rapidezMovimiento}, Velocidad: {rbBola.linearVelocity}");
-        if(isStart){            
+        if (isStart)
+        {
             StartCoroutine(EsperarBoliche());
 
-            isStart = false;
-        }else{
-            if(modoMultijugador.bolasRestantesJ1 == 0 && modoMultijugador.bolasRestantesJ2 == 0){
+        }
+        else
+        {
+            if (modoMultijugador.bolasRestantesJ1 == 0 && modoMultijugador.bolasRestantesJ2 == 0)
+            {
                 puedeLanzar = false;
                 StartCoroutine(EsperarYFinalizarJuego());
 
-            }else{            
-            StartCoroutine(EsperarYCalcularPuntuacion());
+            }
+            else
+            {
+                StartCoroutine(EsperarYCalcularPuntuacion());
 
             }
- 
         }
-
     }
-    
 }
 
 private IEnumerator EsperarBoliche()
@@ -239,14 +286,14 @@ private IEnumerator EsperarBoliche()
     puedeLanzar = false;
 
     posicionInicialCamara = Camera.main.transform.position;
-    rotacionInicialCamara = Camera.main.transform.rotation;    
+    rotacionInicialCamara = Camera.main.transform.rotation;
 
-     CamaraSeguirBola camaraSeguir = Camera.main.GetComponent<CamaraSeguirBola>();
+    CamaraSeguirBola camaraSeguir = Camera.main.GetComponent<CamaraSeguirBola>();
 
-     camaraSeguir.ActualizarBola(rbBola.transform);
+    camaraSeguir.ActualizarBola(rbBola.transform);
 
 
-    float tiempoEspera = 5f;
+    float tiempoEspera = 3f;
     float tiempoTranscurrido = 0f;
 
     while (tiempoTranscurrido < tiempoEspera)
@@ -258,10 +305,18 @@ private IEnumerator EsperarBoliche()
     camaraSeguir.DetenerSeguimiento();
     Camera.main.transform.position = posicionInicialCamara;
     Camera.main.transform.rotation = rotacionInicialCamara;
-    rbBola = Instantiate(Bola, mano.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
-    rbBola.gameObject.tag = "BolaJugador2";
-    
-    turno += 1;
+
+    if (EstaDentroDeLaPista(Boliche.transform.position))
+    {
+        isStart = false;
+        rbBola = Instantiate(Bola, Bola.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
+        rbBola.gameObject.tag = "BolaJugador2";
+
+        turno += 1;
+
+
+    }
+
     puedeLanzar = true;
 }
 
@@ -271,7 +326,7 @@ private IEnumerator EsperarYFinalizarJuego()
 
     camaraSeguir.ActualizarBola(rbBola.transform);
 
-    float tiempoEspera = 5f;
+    float tiempoEspera = 3f;
     float tiempoTranscurrido = 0f;
 
     while (tiempoTranscurrido < tiempoEspera)
@@ -298,13 +353,13 @@ private IEnumerator EsperarYCalcularPuntuacion()
 
         camaraSeguir.ActualizarBola(rbBola.transform);
 
-        float tiempoEspera = 5f;
+        float tiempoEspera = 3f;
         float tiempoTranscurrido = 0f;
 
         while (tiempoTranscurrido < tiempoEspera)
         {
             tiempoTranscurrido += Time.deltaTime;
-            yield return null; 
+            yield return null;
         }
 
         CalcularPuntuacion();
@@ -312,8 +367,8 @@ private IEnumerator EsperarYCalcularPuntuacion()
         camaraSeguir.DetenerSeguimiento();
         Camera.main.transform.position = posicionInicialCamara;
         Camera.main.transform.rotation = rotacionInicialCamara;
-        rbBola = Instantiate(Bola, mano.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
-        
+        rbBola = Instantiate(Bola, Bola.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
+
         turno += 1;
 
 
@@ -326,17 +381,16 @@ private IEnumerator EsperarYCalcularPuntuacion()
             rbBola.gameObject.tag = "BolaJugador1";
         }
 
-       
+
         puedeLanzar = true;
-        
+
     }
 }
 
 public void CalcularPuntuacion()
 {
-     // Obtener las bolas de cada jugador
+    // Obtener las bolas de cada jugador
     GameObject[] bolasJugador1 = GameObject.FindGameObjectsWithTag("BolaJugador1");
-    Debug.Log($"Número de bolas del Jugador 1: {bolasJugador1.Length}");
     GameObject[] bolasJugador2 = GameObject.FindGameObjectsWithTag("BolaJugador2");
 
     float distanciaMinimaJugador1 = float.MaxValue;
@@ -373,28 +427,35 @@ public void CalcularPuntuacion()
         {
             distanciaMinimaJugador2 = -1.0f;
         }
-        Debug.Log($"Distancia mínima Jugador 1: {distanciaMinimaJugador1}");
-        Debug.Log($"Distancia mínima Jugador 2: {distanciaMinimaJugador2}");
 
         modoMultijugador.ActualizarDistancia(distanciaMinimaJugador1, 1);
         modoMultijugador.ActualizarDistancia(distanciaMinimaJugador2, 2);
     }
 }
-    private Vector3 ObtenerPosicionBrazo()
+private Vector3 ObtenerPosicionBrazo()
+{
+    if (KinectManager.Instance == null || !KinectManager.Instance.InicializadoCorrectamente || KinectManager.Instance.kinectDevice == null || KinectManager.Instance.bodyTracker == null)
     {
-        if (KinectManager.Instance == null || !KinectManager.Instance.InicializadoCorrectamente || KinectManager.Instance.kinectDevice == null || KinectManager.Instance.bodyTracker == null)
-        {
-            return Vector3.zero;
-        }
-        try
-        {
-            return KinectManager.Instance.wristPos;
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError("Error obteniendo posición del brazo: " + ex.Message);
-            return Vector3.zero;
-        }
+        return Vector3.zero;
     }
+    try
+    {
+        return KinectManager.Instance.wristPos;
+    }
+    catch (Exception ex)
+    {
+        Debug.LogError("Error obteniendo posición del brazo: " + ex.Message);
+        return Vector3.zero;
+    }
+}
+
+private bool EstaDentroDeLaPista(Vector3 posicion)
+{
+
+    Debug.Log($"Posición de la bola: {posicion}, Límites de la pista: Inferior {limiteInferiorPista}, Superior {limiteSuperiorPista}");
+
+    return posicion.x >= limiteInferiorPista.x && posicion.x <= limiteSuperiorPista.x &&
+           posicion.z >= limiteInferiorPista.z && posicion.z <= limiteSuperiorPista.z;
+}
 }
 

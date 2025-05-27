@@ -30,12 +30,14 @@ public class Lanzamiento : MonoBehaviour
 
     private Vector3 posicionInicialCamara;
     private Quaternion rotacionInicialCamara;
-    private Vector3 posicionInicialBrazo;
-    private Vector3 posicionFinalBrazo;
     private PerfilUsuario perfilUsuario;
-    private bool kinectListo = false;
+
+
+    private Vector3 limiteInferiorPista = new Vector3(-2, 0.05f, 7.78f);
+    private Vector3 limiteSuperiorPista = new Vector3(2, 0.05f, 22.78f);
 
     public Animator animator;
+
     void Start()
     {
         if(isStart){
@@ -49,9 +51,18 @@ public class Lanzamiento : MonoBehaviour
         }
         if (KinectManager.Instance != null && KinectManager.Instance.InicializadoCorrectamente)
         {
-            kinectListo = true;
             KinectManager.Instance.animator = animator;
-            Debug.Log("Kinect asignada correctamente desde el script dependiente.");
+        }
+
+        perfilUsuario.esZurdo = true;
+
+        if(perfilUsuario.esZurdo){
+            mano = GameObject.Find("mixamorig7:LeftHandMiddle1");
+            KinectManager.Instance.esZurdo = true;
+
+        }else{
+            mano = GameObject.Find("mixamorig7:RightHandMiddle1");
+            KinectManager.Instance.esZurdo = false;
         }
     }
     void Update()
@@ -135,11 +146,11 @@ public class Lanzamiento : MonoBehaviour
         if (rbBola != null)
         {
             if(!bolaEnganchada){
-                posicionInicialBrazo = ObtenerPosicionBrazo();
+                rbBola.linearVelocity = Vector3.zero;
+                rbBola.angularVelocity = Vector3.zero;
+                rbBola.isKinematic = true;
+                bolaEnganchada = true;
             }
-            bolaEnganchada = true;
-            rbBola.isKinematic = true;
-
             rbBola.transform.position = mano.transform.position - new Vector3(0, 0.1f, 0);
             
         }
@@ -148,45 +159,57 @@ public class Lanzamiento : MonoBehaviour
     void SoltarBola()
     {
         if (rbBola != null)
-        {
-            bolaEnganchada = false;
+        {   
+            // Obtener las posiciones del brazo
+            var (pecho, muñeca) = KinectManager.Instance.ObtenerDireccionBrazoExtendido();
+            Vector3 direccionCruda = (muñeca - pecho).normalized;
 
-            rbBola.isKinematic = false; 
-            // Obtener posición final del brazo (muñeca)
-
-            // Calcular la dirección del lanzamiento como vector entre las dos posiciones
-            float[] accel = wiimote.Accel.GetCalibratedAccelData();
-            // Calcular la rapidez del movimiento de la mano (magnitud de la aceleración)
-            float rapidezMovimiento = Mathf.Sqrt(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
-
-            // Escalar la velocidad inicial de la Bola en función de la rapidez del movimiento
-            float fuerzaLanzamiento = rapidezMovimiento * perfilUsuario.getFuerzaBase();
-            Debug.Log($"Fuerza de lanzamiento: {perfilUsuario.getFuerzaBase()}");
-            // Aplicar la velocidad inicial a la Bola
-            posicionFinalBrazo = ObtenerPosicionBrazo();
-            Vector3 direccionLanzamiento = (posicionFinalBrazo - posicionInicialBrazo).normalized;
-            rbBola.linearVelocity = direccionLanzamiento * fuerzaLanzamiento;
-            Debug.Log($"Dirección de lanzamiento: {direccionLanzamiento}, Rapidez: {rapidezMovimiento}, Velocidad: {rbBola.linearVelocity}");
-
-
-            if(isStart){            
-                StartCoroutine(EsperarBoliche());
-
-                isStart = false;
-            }else{
-                if(modoPractica.bolasRestantes == 0){
-                    puedeLanzar = false;
-                    StartCoroutine(EsperarYFinalizarJuego());
-
-                }else{            
-                StartCoroutine(EsperarYCalcularPuntuacion());
-
-                }
-    
+                        // Validar que la dirección tenga longitud suficiente
+            if (direccionCruda.magnitude < 0.1f || float.IsNaN(direccionCruda.magnitude))
+            {
+                // Si es muy corta o errónea, usar alternativa
+                var (hombro, codo, muñeca2) = KinectManager.Instance.ObtenerUltimasPosicionesBrazo();
+                direccionCruda = (muñeca2 - hombro);
             }
 
+            Vector3 direccionConAltura = new Vector3(
+                direccionCruda.x,
+                Mathf.Max(direccionCruda.y, 0.3f),
+                direccionCruda.z
+            ).normalized;
+
+            Vector3 direccionLanzamiento = direccionConAltura;
+    
+            // Calcular la rapidez del movimiento de la mano
+            float[] accel = wiimote.Accel.GetCalibratedAccelData();
+            float rapidezMovimiento = Mathf.Sqrt(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
+    
+            // Escalar la velocidad inicial de la bola
+            float fuerzaLanzamiento = rapidezMovimiento * perfilUsuario.getFuerzaBase();
+    
+            bolaEnganchada = false;
+    
+            rbBola.isKinematic = false;
+            // Aplicar la velocidad inicial a la bola
+            rbBola.linearVelocity = direccionLanzamiento * fuerzaLanzamiento;
+    
+            if (isStart)
+            {
+                StartCoroutine(EsperarBoliche());
+            }
+            else
+            {
+                if (modoPractica.bolasRestantes == 0)
+                {
+                    puedeLanzar = false;
+                    StartCoroutine(EsperarYFinalizarJuego());
+                }
+                else
+                {
+                    StartCoroutine(EsperarYCalcularPuntuacion());
+                }
+            }
         }
-        
     }
 
     private IEnumerator EsperarBoliche()
@@ -201,7 +224,7 @@ public class Lanzamiento : MonoBehaviour
         camaraSeguir.ActualizarBola(rbBola.transform);
 
 
-        float tiempoEspera = 5f;
+        float tiempoEspera = 3f;
         float tiempoTranscurrido = 0f;
 
         while (tiempoTranscurrido < tiempoEspera)
@@ -214,8 +237,16 @@ public class Lanzamiento : MonoBehaviour
         Camera.main.transform.position = posicionInicialCamara;
         Camera.main.transform.rotation = rotacionInicialCamara;
 
-        rbBola = Instantiate(Bola, mano.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
-        rbBola.gameObject.tag = "Bola";
+
+        if(EstaDentroDeLaPista(Boliche.transform.position))
+        {
+            isStart = false;
+            
+            rbBola = Instantiate(Bola, Bola.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
+            rbBola.gameObject.tag = "Bola";
+        }
+
+      
         
         puedeLanzar = true;
     }
@@ -226,7 +257,7 @@ public class Lanzamiento : MonoBehaviour
 
         camaraSeguir.ActualizarBola(rbBola.transform);
 
-        float tiempoEspera = 5f;
+        float tiempoEspera = 3f;
         float tiempoTranscurrido = 0f;
 
         while (tiempoTranscurrido < tiempoEspera)
@@ -253,7 +284,7 @@ public class Lanzamiento : MonoBehaviour
 
             camaraSeguir.ActualizarBola(rbBola.transform);
 
-            float tiempoEspera = 5f;
+            float tiempoEspera = 3f;
             float tiempoTranscurrido = 0f;
 
             while (tiempoTranscurrido < tiempoEspera)
@@ -267,7 +298,7 @@ public class Lanzamiento : MonoBehaviour
             camaraSeguir.DetenerSeguimiento();
             Camera.main.transform.position = posicionInicialCamara;
             Camera.main.transform.rotation = rotacionInicialCamara;
-            rbBola = Instantiate(Bola, mano.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
+            rbBola = Instantiate(Bola, Bola.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
             rbBola.gameObject.tag = "Bola";
         
             puedeLanzar = true;
@@ -299,24 +330,14 @@ public class Lanzamiento : MonoBehaviour
         // Actualiza la distancia más cercana en el HUD
         if (distanciaMinima != float.MaxValue)
         {
-            Debug.Log("Distancia más cercana al boliche: " + distanciaMinima);
             modoPractica.ActualizarDistancia(distanciaMinima);
         }
     }
-    private Vector3 ObtenerPosicionBrazo()
-    {
-        if (KinectManager.Instance == null || !KinectManager.Instance.InicializadoCorrectamente || KinectManager.Instance.kinectDevice == null || KinectManager.Instance.bodyTracker == null)
-        {
-            return Vector3.zero;
-        }
-        try
-        {
-            return KinectManager.Instance.wristPos;
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError("Error obteniendo posición del brazo: " + ex.Message);
-            return Vector3.zero;
-        }
+
+    private bool EstaDentroDeLaPista(Vector3 posicion){
+            
+    return posicion.x >= limiteInferiorPista.x && posicion.x <= limiteSuperiorPista.x &&
+           posicion.z >= limiteInferiorPista.z && posicion.z <= limiteSuperiorPista.z;
     }
+  
 }
