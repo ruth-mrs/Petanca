@@ -370,15 +370,30 @@ public class CreacionPerfil : MonoBehaviour
     }
 
     public void MostrarPanelNombre()
-    {
-        MostrarSoloPanelActual(panelNombrePerfil);
+{
+    // CORRECCIÓN: Asegurar que el panel de calibración esté completamente oculto
+    if (panelCalibracion != null)
+        panelCalibracion.SetActive(false);
+    
+    if (panelProcesoCalibracion != null)
+        panelProcesoCalibracion.SetActive(false);
+    
+    if (panelPrincipalCalibracion != null)
+        panelPrincipalCalibracion.SetActive(false);
 
-        // En modo edición, mostrar nombre existente
-        if (modoEdicion && perfilEdicion != null && campoNombre != null)
-        {
-            campoNombre.text = perfilEdicion.nombreUsuario;
-        }
+    MostrarSoloPanelActual(panelNombrePerfil);
+
+    // En modo edición, mostrar nombre existente
+    if (modoEdicion && perfilEdicion != null && campoNombre != null)
+    {
+        campoNombre.text = perfilEdicion.nombreUsuario;
     }
+    else if (campoNombre != null)
+    {
+        // Limpiar el campo para nuevos perfiles
+        campoNombre.text = "";
+    }
+}
 
     private System.Collections.IEnumerator ActualizarBotonesConRetraso(System.Action accionActualizar)
     {
@@ -495,159 +510,170 @@ public class CreacionPerfil : MonoBehaviour
         IniciarCalibracion();
     }
 
-    private IEnumerator ProcesoCalibracion()
+private IEnumerator ProcesoCalibracion()
+{
+    Debug.Log("Iniciando proceso de calibración");
+
+    if (textoEstadoCalibracion != null)
     {
-        Debug.Log("Iniciando proceso de calibración");
-
-        if (textoEstadoCalibracion != null)
+        if (mote != null)
         {
-            if (mote != null)
+            textoEstadoCalibracion.text = "Prepárate para la calibración...\n\n" +
+                "Cuando estés listo, mantén pulsado el botón B y realiza\n" +
+                "un movimiento de lanzamiento. Suelta el botón al terminar.";
+        }
+        else
+        {
+            textoEstadoCalibracion.text = "Calibración con mouse/teclado...\n\n" +
+                "Mantén pulsado el botón izquierdo del mouse y muévelo\n" +
+                "para simular un movimiento de lanzamiento. Suelta para terminar.";
+        }
+    }
+
+    if (indicadorCargaCircular != null)
+    {
+        indicadorCargaCircular.gameObject.SetActive(true);
+    }
+
+    // Esperar a que el usuario pulse el botón (B del Wiimote o click izquierdo)
+    bool botonPulsado = false;
+
+    while (!botonPulsado)
+    {
+        if (mote != null)
+        {
+            mote.ReadWiimoteData();
+            if (mote.Button.b)
             {
-                textoEstadoCalibracion.text = "Prepárate para la calibración...\n\n" +
-                    "Cuando estés listo, mantén pulsado el botón B y realiza\n" +
-                    "un movimiento de lanzamiento. Suelta el botón al terminar.";
+                botonPulsado = true;
+                calibracionEnCurso = true;
+                aceleracionMaximaCaptada = 0f;
+
+                if (textoEstadoCalibracion != null)
+                {
+                    textoEstadoCalibracion.text = "Calibración en proceso...\n" +
+                        "Mantén el botón hasta completar el movimiento";
+                }
             }
-            else
+        }
+        else
+        {
+            // Mouse fallback
+            if (Input.GetMouseButtonDown(0))
             {
-                textoEstadoCalibracion.text = "Calibración con mouse/teclado...\n\n" +
-                    "Mantén pulsado el botón izquierdo del mouse y muévelo\n" +
-                    "para simular un movimiento de lanzamiento. Suelta para terminar.";
+                botonPulsado = true;
+                calibracionEnCurso = true;
+                aceleracionMaximaCaptada = 0f;
+
+                if (textoEstadoCalibracion != null)
+                {
+                    textoEstadoCalibracion.text = "Calibración en proceso...\n" +
+                        "Mantén el botón del mouse hasta completar el movimiento";
+                }
             }
         }
 
-        if (indicadorCargaCircular != null)
-        {
-            indicadorCargaCircular.gameObject.SetActive(true);
-        }
+        yield return null;
+    }
 
-        // Esperar a que el usuario pulse el botón (B del Wiimote o click izquierdo)
-        bool botonPulsado = false;
-
-        while (!botonPulsado)
+    // Bucle de calibración
+    if (mote == null)
+    {
+        // Mouse calibration
+        float calibrationTime = 0f;
+        float maxCalibrationTime = 5f; // Máximo 5 segundos de calibración
+        
+        while (calibracionEnCurso && calibrationTime < maxCalibrationTime)
         {
-            if (mote != null)
+            calibrationTime += Time.deltaTime;
+            
+            if (Input.GetMouseButtonUp(0))
             {
-                mote.ReadWiimoteData();
-                if (mote.Button.b)
-                {
-                    botonPulsado = true;
-                    calibracionEnCurso = true;
-                    aceleracionMaximaCaptada = 0f;
-
-                    if (textoEstadoCalibracion != null)
-                    {
-                        textoEstadoCalibracion.text = "Calibración en proceso...\n" +
-                            "Mantén el botón hasta completar el movimiento";
-                    }
-                }
+                calibracionEnCurso = false;
+                break;
             }
-            else
-            {
-                // Mouse fallback
-                if (Input.GetMouseButtonDown(0))
-                {
-                    botonPulsado = true;
-                    calibracionEnCurso = true;
-                    aceleracionMaximaCaptada = 0f;
 
-                    if (textoEstadoCalibracion != null)
-                    {
-                        textoEstadoCalibracion.text = "Calibración en proceso...\n" +
-                            "Mantén el botón del mouse hasta completar el movimiento";
-                    }
-                }
+            // Simulate acceleration based on mouse movement
+            Vector3 mouseMovement = new Vector3(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"), 0);
+            float mouseMagnitude = mouseMovement.magnitude;
+
+            if (mouseMagnitude > aceleracionMaximaCaptada)
+            {
+                aceleracionMaximaCaptada = mouseMagnitude;
             }
 
             yield return null;
         }
 
-        // Bucle de calibración
-        if (mote == null)
+        // Asegurar un valor mínimo razonable
+        aceleracionMaximaCaptada = Mathf.Max(aceleracionMaximaCaptada * 5f, 1.5f);
+
+        if (textoEstadoCalibracion != null)
         {
-            // Mouse calibration
-            float calibrationTime = 0f;
-            float maxCalibrationTime = 5f; // Máximo 5 segundos de calibración
-            
-            while (calibracionEnCurso && calibrationTime < maxCalibrationTime)
+            textoEstadoCalibracion.text = $"¡Calibración completada!\n\n" +
+                $"Aceleración máxima: {aceleracionMaximaCaptada:F2}\n\n" +
+                $"Continuando al siguiente paso...";
+        }
+    }
+    else
+    {
+        // Wiimote calibration (existing code)
+        while (calibracionEnCurso)
+        {
+            mote.ReadWiimoteData();
+
+            if (!mote.Button.b)
             {
-                calibrationTime += Time.deltaTime;
-                
-                if (Input.GetMouseButtonUp(0))
+                calibracionEnCurso = false;
+
+                if (textoEstadoCalibracion != null)
                 {
-                    calibracionEnCurso = false;
-                    break;
+                    textoEstadoCalibracion.text = $"¡Calibración completada!\n\n" +
+                        $"Aceleración máxima: {aceleracionMaximaCaptada:F2}\n\n" +
+                        $"Continuando al siguiente paso...";
                 }
-
-                // Simulate acceleration based on mouse movement
-                Vector3 mouseMovement = new Vector3(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"), 0);
-                float mouseMagnitude = mouseMovement.magnitude;
-
-                if (mouseMagnitude > aceleracionMaximaCaptada)
-                {
-                    aceleracionMaximaCaptada = mouseMagnitude;
-                }
-
-                yield return null;
+                break;
             }
 
-            // Asegurar un valor mínimo razonable
-            aceleracionMaximaCaptada = Mathf.Max(aceleracionMaximaCaptada * 5f, 1.5f);
-
-            if (textoEstadoCalibracion != null)
+            float[] datos = mote.Accel.GetCalibratedAccelData();
+            if (datos != null && datos.Length == 3)
             {
-                textoEstadoCalibracion.text = $"¡Calibración completada!\n\n" +
-                    $"Aceleración máxima: {aceleracionMaximaCaptada:F2}\n\n" +
-                    $"Continuando al siguiente paso...";
-            }
-        }
-        else
-        {
-            // Wiimote calibration (existing code)
-            while (calibracionEnCurso)
-            {
-                mote.ReadWiimoteData();
+                float magnitud = Mathf.Sqrt(
+                    datos[0] * datos[0] +
+                    datos[1] * datos[1] +
+                    datos[2] * datos[2]);
 
-                if (!mote.Button.b)
+                if (magnitud > aceleracionMaximaCaptada)
                 {
-                    calibracionEnCurso = false;
-
-                    if (textoEstadoCalibracion != null)
-                    {
-                        textoEstadoCalibracion.text = $"¡Calibración completada!\n\n" +
-                            $"Aceleración máxima: {aceleracionMaximaCaptada:F2}\n\n" +
-                            $"Continuando al siguiente paso...";
-                    }
-                    break;
+                    aceleracionMaximaCaptada = magnitud;
                 }
-
-                float[] datos = mote.Accel.GetCalibratedAccelData();
-                if (datos != null && datos.Length == 3)
-                {
-                    float magnitud = Mathf.Sqrt(
-                        datos[0] * datos[0] +
-                        datos[1] * datos[1] +
-                        datos[2] * datos[2]);
-
-                    if (magnitud > aceleracionMaximaCaptada)
-                    {
-                        aceleracionMaximaCaptada = magnitud;
-                    }
-                }
-
-                yield return null;
             }
+
+            yield return null;
         }
-
-        if (indicadorCargaCircular != null)
-        {
-            indicadorCargaCircular.gameObject.SetActive(false);
-        }
-
-        yield return new WaitForSeconds(2f);
-
-        MostrarPanelNombre();
     }
 
+    // CORRECCIÓN: Asegurar que la calibración está terminada
+    calibracionEnCurso = false;
+
+    // Ocultar completamente todos los elementos de calibración
+    if (indicadorCargaCircular != null)
+    {
+        indicadorCargaCircular.gameObject.SetActive(false);
+    }
+
+    // Esperar un poco para mostrar el mensaje final
+    yield return new WaitForSeconds(2f);
+
+    // CORRECCIÓN: Ocultar completamente el panel de proceso de calibración
+    if (panelProcesoCalibracion != null)
+    {
+        panelProcesoCalibracion.SetActive(false);
+    }
+
+    // Avanzar al panel de nombre
+    MostrarPanelNombre();
+}
     public void GenerarNombreAleatorio()
     {
         if (campoNombre != null)
@@ -655,8 +681,8 @@ public class CreacionPerfil : MonoBehaviour
             campoNombre.text = GestorPerfiles.Instancia.GenerarNombreAleatorio();
         }
     }
+    
 
-    // Guardar perfil
     public void GuardarPerfil()
     {
         if (campoNombre == null)
@@ -671,12 +697,9 @@ public class CreacionPerfil : MonoBehaviour
         if (string.IsNullOrEmpty(nombre))
         {
             Debug.LogWarning("Debes introducir un nombre válido para el perfil");
-            
+
             // Mostrar mensaje en UI si es posible
-            if (textoEstadoCalibracion != null)
-            {
-                textoEstadoCalibracion.text = "Por favor, introduce un nombre válido para el perfil.";
-            }
+            StartCoroutine(MostrarMensajeError("Por favor, introduce un nombre válido para el perfil."));
             return;
         }
 
@@ -684,6 +707,15 @@ public class CreacionPerfil : MonoBehaviour
         if (GestorPerfiles.Instancia == null)
         {
             Debug.LogError("GestorPerfiles no está disponible");
+            StartCoroutine(MostrarMensajeError("Error: Sistema de perfiles no disponible."));
+            return;
+        }
+
+        // CORRECCIÓN: Verificar que tenemos datos de calibración válidos
+        if (aceleracionMaximaCaptada <= 0)
+        {
+            Debug.LogWarning("No se ha completado la calibración correctamente");
+            StartCoroutine(MostrarMensajeError("Error: Calibración incompleta. Vuelve a calibrar."));
             return;
         }
 
@@ -700,6 +732,9 @@ public class CreacionPerfil : MonoBehaviour
                     aceleracionMaximaCaptada
                 );
                 Debug.Log($"Perfil '{nombre}' actualizado correctamente");
+
+                // Mostrar mensaje de éxito antes de volver
+                StartCoroutine(MostrarMensajeExito($"Perfil '{nombre}' actualizado correctamente"));
             }
             else
             {
@@ -711,23 +746,48 @@ public class CreacionPerfil : MonoBehaviour
                     aceleracionMaximaCaptada
                 );
                 Debug.Log($"Perfil '{nombre}' creado correctamente");
-            }
 
-            // Volver a la configuración
-            VolverAConfiguracion();
+                // Mostrar mensaje de éxito antes de volver
+                StartCoroutine(MostrarMensajeExito($"Perfil '{nombre}' creado correctamente"));
+            }
         }
         catch (System.Exception ex)
         {
             Debug.LogError($"Error al guardar el perfil: {ex.Message}");
-            
-            if (textoEstadoCalibracion != null)
-            {
-                textoEstadoCalibracion.text = "Error al guardar el perfil. Inténtalo de nuevo.";
-            }
+            StartCoroutine(MostrarMensajeError("Error al guardar el perfil. Inténtalo de nuevo."));
         }
     }
 
-    // Volver al menú de configuración
+    private IEnumerator MostrarMensajeError(string mensaje)
+{
+    if (textoEstadoCalibracion != null)
+    {
+        textoEstadoCalibracion.text = mensaje;
+        textoEstadoCalibracion.color = Color.red;
+    }
+    
+    yield return new WaitForSeconds(3f);
+    
+    if (textoEstadoCalibracion != null)
+    {
+        textoEstadoCalibracion.color = Color.white;
+        textoEstadoCalibracion.text = "";
+    }
+}
+
+private IEnumerator MostrarMensajeExito(string mensaje)
+{
+    if (textoEstadoCalibracion != null)
+    {
+        textoEstadoCalibracion.text = mensaje;
+        textoEstadoCalibracion.color = Color.green;
+    }
+    
+    yield return new WaitForSeconds(2f);
+    
+    // Volver a la configuración después del mensaje
+    VolverAConfiguracion();
+}
     public void VolverAConfiguracion()
     {
         SceneManager.LoadScene(escenaConfiguracion);

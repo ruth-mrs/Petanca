@@ -55,8 +55,7 @@ public class GestorPerfiles : MonoBehaviour
         // Si no hay perfiles, crear uno por defecto
         if (perfilesUsuarios.Count == 0)
         {
-            PerfilUsuario perfilPredeterminado = new PerfilUsuario("Jugador", false, false);
-            perfilPredeterminado.fuerzaBase = 7f;
+            PerfilUsuario perfilPredeterminado = new PerfilUsuario("Jugador", false, false, 2.5f);
             perfilesUsuarios.Add(perfilPredeterminado);
             perfilActual = perfilPredeterminado;
             GuardarPerfiles();
@@ -78,18 +77,23 @@ public class GestorPerfiles : MonoBehaviour
     // Crear un nuevo perfil
     public void CrearPerfil(string nombre, bool esZurdo, bool perfilReducido, float aceleracionMaxima)
     {
-        PerfilUsuario nuevoPerfil = new PerfilUsuario(nombre, esZurdo, perfilReducido);
-        nuevoPerfil.aceleracionMaximaCalibrada = aceleracionMaxima;
-        nuevoPerfil.actualizarFactorAyuda();
+        Debug.Log($"GestorPerfiles - Creando perfil: {nombre}, Zurdo: {esZurdo}, Reducido: {perfilReducido}, Aceleración: {aceleracionMaxima}");
+        
+        PerfilUsuario nuevoPerfil = new PerfilUsuario(nombre, esZurdo, perfilReducido, aceleracionMaxima);
         
         perfilesUsuarios.Add(nuevoPerfil);
         perfilActual = nuevoPerfil;
+        
+        Debug.Log($"GestorPerfiles - Perfil añadido. Total perfiles: {perfilesUsuarios.Count}");
+        
         GuardarPerfiles();
     }
     
     // Actualizar un perfil existente
     public void ActualizarPerfil(PerfilUsuario perfil, string nombre, bool esZurdo, bool perfilReducido, float aceleracionMaxima)
     {
+        Debug.Log($"GestorPerfiles - Actualizando perfil: {nombre}");
+        
         perfil.nombreUsuario = nombre;
         perfil.esZurdo = esZurdo;
         perfil.perfilReducido = perfilReducido;
@@ -146,6 +150,7 @@ public class GestorPerfiles : MonoBehaviour
         {
             File.WriteAllText(rutaArchivo, json);
             Debug.Log("Perfiles guardados en: " + rutaArchivo);
+            Debug.Log("JSON guardado: " + json);
         }
         catch (System.Exception e)
         {
@@ -163,6 +168,8 @@ public class GestorPerfiles : MonoBehaviour
             try
             {
                 string json = File.ReadAllText(rutaArchivo);
+                Debug.Log("JSON cargado: " + json);
+                
                 PerfilesData data = JsonUtility.FromJson<PerfilesData>(json);
                 
                 if (data != null && data.perfiles != null)
