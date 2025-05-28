@@ -72,10 +72,6 @@ public class MenuConfiguracion : MonoBehaviour
                 SubirVolumen();
             }
 
-            if (!wiimote.Button.d_up && !wiimote.Button.d_down)
-            {
-                GestorUI.Instance.LiberarBoton();
-            }
 
             if(!wiimote.Button.one && !wiimote.Button.two){
                 wiimotebuttonused = false;
@@ -85,40 +81,12 @@ public class MenuConfiguracion : MonoBehaviour
             {
                 GestorUI.Instance.SeleccionarBoton();
             }
-        }
-        else
-        {
-            // Controles alternativos para teclado/rato
-            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
-            {
-                GestorUI.Instance.MoverMenu(-1);
-            }
-            else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
-            {
-                GestorUI.Instance.MoverMenu(1);
-            }
-
-            // Controles de volumen con teclado
-            if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
-            {
-                BajarVolumen();
-            }
-            else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
-            {
-                SubirVolumen();
-            }
-
-            if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
-                !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
+             if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.one && !wiimote.Button.two && !wiimote.Button.a)   
             {
                 GestorUI.Instance.LiberarBoton();
             }
-
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
-            {
-                GestorUI.Instance.SeleccionarBoton();
-            }
         }
+ 
     }
     private void ActualizarEstadoBotones()
     {
@@ -255,6 +223,14 @@ public class MenuConfiguracion : MonoBehaviour
         PlayerPrefs.Save();
         
         // Cargar escena del menú principal
-        SceneManager.LoadScene(escenaMenuPrincipal);
+        SceneManager.LoadScene("MenuPrincipal");
     }
+
+        private void OnDestroy()
+{
+    if (GestorUI.Instance != null)
+    {
+        GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
+    }
+}
 }

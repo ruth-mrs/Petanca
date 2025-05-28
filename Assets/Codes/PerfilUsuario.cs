@@ -1,7 +1,7 @@
 using UnityEngine;
 using System;
 
-[Serializable]
+[System.Serializable]
 public class PerfilUsuario: MonoBehaviour
 {
     public string nombreUsuario;
@@ -24,6 +24,17 @@ public class PerfilUsuario: MonoBehaviour
         esZurdo = zurdo;
         perfilReducido = reducido;
         fechaCreacion = DateTime.Now.Ticks;
+    }
+
+    // NUEVO: Constructor completo para la creación de perfiles
+    public PerfilUsuario(string nombre, bool zurdo, bool reducido, float aceleracion)
+    {
+        nombreUsuario = nombre;
+        esZurdo = zurdo;
+        perfilReducido = reducido;
+        aceleracionMaximaCalibrada = aceleracion;
+        fechaCreacion = DateTime.Now.Ticks;
+        actualizarFactorAyuda();
     }
 
     public float getFuerzaBase()

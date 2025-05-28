@@ -1,15 +1,27 @@
 using UnityEngine;
-using UnityEngine.Rendering.PostProcessing;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+
+    public enum TipoDaltonismo
+    {
+        Normal = 0,
+        Protanopia = 1,
+        Deuteranopia = 2,
+        Tritanopia = 3,
+        Protanomalia = 4,
+        Deuteranomalia = 5,
+        Tritanomalia = 6
+    }
 
 public class GestorAccesibilidad : MonoBehaviour
 {
     public static GestorAccesibilidad Instancia { get; private set; }
-    
-    [Header("Post-Processing")]
-    public PostProcessVolume volumenProcesamiento;
-    private ColorGrading colorGrading;
+
+    [Header("Volume")]
+    public Volume volumenProcesamiento;
+    private ColorAdjustments colorAdjustments;
     private bool sistemaInicializado = false;
-    
+
     private void Awake()
     {
         // Singleton persistente entre escenas
@@ -17,16 +29,19 @@ public class GestorAccesibilidad : MonoBehaviour
         {
             Instancia = this;
             DontDestroyOnLoad(gameObject);
-            Debug.Log("✅ GestorAccesibilidad creado como singleton");
+            Debug.Log("✅ GestorAccesibilidadURP creado como singleton");
         }
         else
         {
-            Debug.Log("⚠️ GestorAccesibilidad ya existe, destruyendo duplicado");
+            Debug.Log("⚠️ GestorAccesibilidadURP ya existe, destruyendo duplicado");
             Destroy(gameObject);
             return;
         }
+
+        if (volumenProcesamiento != null)
+            volumenProcesamiento.weight = 1f;
     }
-    
+
     private void Start()
     {
         if (Instancia == this)
@@ -34,77 +49,89 @@ public class GestorAccesibilidad : MonoBehaviour
             InicializarSistema();
         }
     }
-    
+
     private void InicializarSistema()
     {
         if (sistemaInicializado) return;
-        
-        Debug.Log("🔧 Inicializando sistema de accesibilidad...");
-        
-        // Buscar o crear volumen de post-procesamiento
+
+        Debug.Log("🔧 Inicializando sistema de accesibilidad URP...");
+
         if (volumenProcesamiento == null)
         {
-            volumenProcesamiento = FindObjectOfType<PostProcessVolume>();
-            Debug.Log(volumenProcesamiento != null ? "📍 PostProcessVolume encontrado" : "❌ PostProcessVolume no encontrado");
+            volumenProcesamiento = FindObjectOfType<Volume>();
+            Debug.Log(volumenProcesamiento != null ? "📍 Volume encontrado" : "❌ Volume no encontrado");
         }
-        
+
         if (volumenProcesamiento == null)
         {
-            CrearVolumenPostProceso();
+            CrearVolume();
         }
-        
-        // Configurar color grading
-        if (ConfigurarColorGrading())
+
+        if (ConfigurarColorAdjustments())
         {
             sistemaInicializado = true;
-            // Aplicar filtro guardado después de la inicialización
             CargarYAplicarFiltroGuardado();
-            Debug.Log("✅ Sistema de accesibilidad inicializado correctamente");
+            Debug.Log("✅ Sistema de accesibilidad URP inicializado correctamente");
         }
         else
         {
-            Debug.LogError("❌ Error al inicializar el sistema de accesibilidad");
+            Debug.LogError("❌ Error al inicializar el sistema de accesibilidad URP");
         }
     }
-    
-    private void CrearVolumenPostProceso()
+
+    private void CrearVolume()
     {
-        Debug.Log("🔨 Creando PostProcessVolume...");
-        GameObject volumeObj = new GameObject("Global Post Process Volume");
-        volumenProcesamiento = volumeObj.AddComponent<PostProcessVolume>();
+        Debug.Log("🔨 Creando Volume global...");
+        GameObject volumeObj = new GameObject("Global Volume");
+        volumeObj.layer = LayerMask.NameToLayer("PostProcessing"); // asegúrate que ese layer exista o usa Default
+        volumenProcesamiento = volumeObj.AddComponent<Volume>();
         volumenProcesamiento.isGlobal = true;
-        volumenProcesamiento.priority = 1;
+        volumenProcesamiento.priority = 1f;
+
+        // Crear y asignar un perfil nuevo
+        volumenProcesamiento.profile = ScriptableObject.CreateInstance<VolumeProfile>();
+
         DontDestroyOnLoad(volumeObj);
-        Debug.Log("✅ PostProcessVolume creado");
+        Debug.Log("✅ Volume creado");
     }
-    
-    private bool ConfigurarColorGrading()
+
+    private bool ConfigurarColorAdjustments()
     {
         try
         {
             if (volumenProcesamiento.profile == null)
             {
-                volumenProcesamiento.profile = ScriptableObject.CreateInstance<PostProcessProfile>();
-                Debug.Log("📋 Perfil de post-procesamiento creado");
+                volumenProcesamiento.profile = ScriptableObject.CreateInstance<VolumeProfile>();
+                Debug.Log("📋 Perfil de Volume creado");
             }
-            
-            if (!volumenProcesamiento.profile.TryGetSettings(out colorGrading))
+
+            if (!volumenProcesamiento.profile.TryGet<ColorAdjustments>(out colorAdjustments))
             {
-                colorGrading = volumenProcesamiento.profile.AddSettings<ColorGrading>();
-                Debug.Log("🎨 ColorGrading añadido al perfil");
+                colorAdjustments = volumenProcesamiento.profile.Add<ColorAdjustments>(true);
+                Debug.Log("🎨 ColorAdjustments añadido al perfil");
             }
-            
-            colorGrading.enabled.Override(true);
-            Debug.Log("✅ ColorGrading configurado correctamente");
+
+            colorAdjustments.active = true;
+            Debug.Log("✅ ColorAdjustments configurado correctamente");
             return true;
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"❌ Error configurando ColorGrading: {e.Message}");
+            Debug.LogError($"❌ Error configurando ColorAdjustments: {e.Message}");
             return false;
         }
     }
-    
+
+        public bool SistemaListo()
+    {
+        return sistemaInicializado;
+    }
+
+    public void ForzarInicializacion()
+    {
+        InicializarSistema();
+    }
+
     private void CargarYAplicarFiltroGuardado()
     {
         if (!sistemaInicializado)
@@ -113,13 +140,13 @@ public class GestorAccesibilidad : MonoBehaviour
             Invoke(nameof(CargarYAplicarFiltroGuardado), 0.1f);
             return;
         }
-        
+
         int filtroGuardado = PlayerPrefs.GetInt("FiltroAccesibilidad", 0);
-        Debug.Log($"💾 Cargando filtro guardado: {(MenuAccesibilidad.TipoDaltonismo)filtroGuardado}");
-        AplicarFiltro((MenuAccesibilidad.TipoDaltonismo)filtroGuardado);
+        Debug.Log($"💾 Cargando filtro guardado: {filtroGuardado}");
+        AplicarFiltro((TipoDaltonismo)filtroGuardado);
     }
-    
-    public void AplicarFiltro(MenuAccesibilidad.TipoDaltonismo tipo)
+
+    public void AplicarFiltro(TipoDaltonismo tipo)
     {
         if (!sistemaInicializado)
         {
@@ -127,174 +154,90 @@ public class GestorAccesibilidad : MonoBehaviour
             InicializarSistema();
             if (!sistemaInicializado) return;
         }
-        
-        if (colorGrading == null)
+
+        if (colorAdjustments == null)
         {
-            Debug.LogError("❌ ColorGrading es null. No se puede aplicar filtro.");
+            Debug.LogError("❌ ColorAdjustments es null. No se puede aplicar filtro.");
             return;
         }
-        
-        // Guardar la preferencia inmediatamente
+
         PlayerPrefs.SetInt("FiltroAccesibilidad", (int)tipo);
         PlayerPrefs.Save();
-        
+
+        // Reset matrix antes de aplicar filtro
+        colorAdjustments.colorFilter.value = Color.white;
+
         switch (tipo)
         {
-            case MenuAccesibilidad.TipoDaltonismo.Normal:
+            case TipoDaltonismo.Normal:
                 AplicarFiltroNormal();
                 break;
-            case MenuAccesibilidad.TipoDaltonismo.Protanopia:
+            case TipoDaltonismo.Protanopia:
                 AplicarFiltroProtanopia();
                 break;
-            case MenuAccesibilidad.TipoDaltonismo.Deuteronopia:
-                AplicarFiltroDeuteronopia();
+            case TipoDaltonismo.Deuteranopia:
+                AplicarFiltroDeuteranopia();
                 break;
-            case MenuAccesibilidad.TipoDaltonismo.Tritanopia:
+            case TipoDaltonismo.Tritanopia:
                 AplicarFiltroTritanopia();
                 break;
-            case MenuAccesibilidad.TipoDaltonismo.Protanomalia:
+            case TipoDaltonismo.Protanomalia:
                 AplicarFiltroProtanomalia();
                 break;
-            case MenuAccesibilidad.TipoDaltonismo.Deuteranomalia:
+            case TipoDaltonismo.Deuteranomalia:
                 AplicarFiltroDeuteranomalia();
                 break;
-            case MenuAccesibilidad.TipoDaltonismo.Tritanomalia:
+            case TipoDaltonismo.Tritanomalia:
                 AplicarFiltroTritanomalia();
                 break;
         }
-        
+
         Debug.Log($"✅ Filtro aplicado y guardado: {tipo}");
     }
-    
-    // Método público para verificar si el sistema está listo
-    public bool SistemaListo()
-    {
-        return sistemaInicializado && colorGrading != null;
-    }
-    
-    // Método público para forzar inicialización
-    public void ForzarInicializacion()
-    {
-        sistemaInicializado = false;
-        InicializarSistema();
-    }
-    
+
     private void AplicarFiltroNormal()
     {
-        colorGrading.mixerRedOutRedIn.Override(100f);
-        colorGrading.mixerRedOutGreenIn.Override(0f);
-        colorGrading.mixerRedOutBlueIn.Override(0f);
-        
-        colorGrading.mixerGreenOutRedIn.Override(0f);
-        colorGrading.mixerGreenOutGreenIn.Override(100f);
-        colorGrading.mixerGreenOutBlueIn.Override(0f);
-        
-        colorGrading.mixerBlueOutRedIn.Override(0f);
-        colorGrading.mixerBlueOutGreenIn.Override(0f);
-        colorGrading.mixerBlueOutBlueIn.Override(100f);
+        colorAdjustments.colorFilter.Override(Color.white);
     }
-    
+
+    // Aquí uso el colorFilter para simular las matrices, no es exacto pero para probar va bien.
+    // Para algo más avanzado necesitarías un shader personalizado.
+
     private void AplicarFiltroProtanopia()
     {
-        // Ceguera al rojo - transformación de matriz
-        colorGrading.mixerRedOutRedIn.Override(56.7f);
-        colorGrading.mixerRedOutGreenIn.Override(43.3f);
-        colorGrading.mixerRedOutBlueIn.Override(0f);
-        
-        colorGrading.mixerGreenOutRedIn.Override(55.8f);
-        colorGrading.mixerGreenOutGreenIn.Override(44.2f);
-        colorGrading.mixerGreenOutBlueIn.Override(0f);
-        
-        colorGrading.mixerBlueOutRedIn.Override(0f);
-        colorGrading.mixerBlueOutGreenIn.Override(24.2f);
-        colorGrading.mixerBlueOutBlueIn.Override(75.8f);
+        colorAdjustments.colorFilter.Override(new Color(0.567f, 0.433f, 0f));
     }
-    
-    private void AplicarFiltroDeuteronopia()
+
+    private void AplicarFiltroDeuteranopia()
     {
-        // Ceguera al verde
-        colorGrading.mixerRedOutRedIn.Override(62.5f);
-        colorGrading.mixerRedOutGreenIn.Override(37.5f);
-        colorGrading.mixerRedOutBlueIn.Override(0f);
-        
-        colorGrading.mixerGreenOutRedIn.Override(70f);
-        colorGrading.mixerGreenOutGreenIn.Override(30f);
-        colorGrading.mixerGreenOutBlueIn.Override(0f);
-        
-        colorGrading.mixerBlueOutRedIn.Override(0f);
-        colorGrading.mixerBlueOutGreenIn.Override(30f);
-        colorGrading.mixerBlueOutBlueIn.Override(70f);
+        colorAdjustments.colorFilter.Override(new Color(0.625f, 0.375f, 0f));
     }
-    
+
     private void AplicarFiltroTritanopia()
     {
-        // Ceguera al azul
-        colorGrading.mixerRedOutRedIn.Override(95f);
-        colorGrading.mixerRedOutGreenIn.Override(5f);
-        colorGrading.mixerRedOutBlueIn.Override(0f);
-        
-        colorGrading.mixerGreenOutRedIn.Override(0f);
-        colorGrading.mixerGreenOutGreenIn.Override(43.3f);
-        colorGrading.mixerGreenOutBlueIn.Override(56.7f);
-        
-        colorGrading.mixerBlueOutRedIn.Override(0f);
-        colorGrading.mixerBlueOutGreenIn.Override(47.5f);
-        colorGrading.mixerBlueOutBlueIn.Override(52.5f);
+        colorAdjustments.colorFilter.Override(new Color(0.95f, 0.05f, 0f));
     }
-    
+
     private void AplicarFiltroProtanomalia()
     {
-        // Deficiencia al rojo (menos severa)
-        colorGrading.mixerRedOutRedIn.Override(81.7f);
-        colorGrading.mixerRedOutGreenIn.Override(18.3f);
-        colorGrading.mixerRedOutBlueIn.Override(0f);
-        
-        colorGrading.mixerGreenOutRedIn.Override(33.3f);
-        colorGrading.mixerGreenOutGreenIn.Override(66.7f);
-        colorGrading.mixerGreenOutBlueIn.Override(0f);
-        
-        colorGrading.mixerBlueOutRedIn.Override(0f);
-        colorGrading.mixerBlueOutGreenIn.Override(12.5f);
-        colorGrading.mixerBlueOutBlueIn.Override(87.5f);
+        colorAdjustments.colorFilter.Override(new Color(0.817f, 0.183f, 0f));
     }
-    
+
     private void AplicarFiltroDeuteranomalia()
     {
-        // Deficiencia al verde (menos severa)
-        colorGrading.mixerRedOutRedIn.Override(80f);
-        colorGrading.mixerRedOutGreenIn.Override(20f);
-        colorGrading.mixerRedOutBlueIn.Override(0f);
-        
-        colorGrading.mixerGreenOutRedIn.Override(25.8f);
-        colorGrading.mixerGreenOutGreenIn.Override(74.2f);
-        colorGrading.mixerGreenOutBlueIn.Override(0f);
-        
-        colorGrading.mixerBlueOutRedIn.Override(0f);
-        colorGrading.mixerBlueOutGreenIn.Override(14.2f);
-        colorGrading.mixerBlueOutBlueIn.Override(85.8f);
+        colorAdjustments.colorFilter.Override(new Color(0.8f, 0.2f, 0f));
     }
-    
+
     private void AplicarFiltroTritanomalia()
     {
-        // Deficiencia al azul (menos severa)
-        colorGrading.mixerRedOutRedIn.Override(96.7f);
-        colorGrading.mixerRedOutGreenIn.Override(3.3f);
-        colorGrading.mixerRedOutBlueIn.Override(0f);
-        
-        colorGrading.mixerGreenOutRedIn.Override(0f);
-        colorGrading.mixerGreenOutGreenIn.Override(73.3f);
-        colorGrading.mixerGreenOutBlueIn.Override(26.7f);
-        
-        colorGrading.mixerBlueOutRedIn.Override(0f);
-        colorGrading.mixerBlueOutGreenIn.Override(18.3f);
-        colorGrading.mixerBlueOutBlueIn.Override(81.7f);
+        colorAdjustments.colorFilter.Override(new Color(0.967f, 0.033f, 0f));
     }
-    
+
     private void OnDestroy()
     {
         if (Instancia == this)
         {
-            Debug.Log("🔄 GestorAccesibilidad destruido");
+            Debug.Log("🔄 GestorAccesibilidadURP destruido");
             Instancia = null;
         }
     }

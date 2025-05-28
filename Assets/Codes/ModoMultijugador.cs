@@ -41,6 +41,7 @@ public class ModoMultijugador : MonoBehaviour
         if (GestorUI.Instance != null)
         {
             GestorUI.Instance.Inicializar(canvas);
+            GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
             GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
             canvas.enabled = false;
 
@@ -100,11 +101,11 @@ public class ModoMultijugador : MonoBehaviour
 
         if (textoJ1Distancia)
         {
-            textoJ1Distancia.text = distanciaJ1 == -1.0 ? "Distancia: --" : $"Distancia: {distanciaJ1:F2} m";
+            textoJ1Distancia.text = (distanciaJ1 == -1.0 || distanciaJ1 == float.MaxValue) ? "Distancia: --" : $"Distancia: {distanciaJ1:F2} m";
         }
         if (textoJ2Distancia)
         {
-            textoJ2Distancia.text = distanciaJ2 == -1.0 ? "Distancia: --" : $"Distancia: {distanciaJ2:F2} m";
+            textoJ2Distancia.text = (distanciaJ2 == -1.0 || distanciaJ2 == float.MaxValue)? "Distancia: --" : $"Distancia: {distanciaJ2:F2} m";
         }
     }
 
@@ -184,7 +185,6 @@ public class ModoMultijugador : MonoBehaviour
 
     public void moverMenu(int movimiento)
     {
-        Debug.Log("Movimiento del menú: " + movimiento);
         if (GestorUI.Instance != null)
         {
             GestorUI.Instance.MoverMenu(movimiento);
@@ -250,6 +250,14 @@ public class ModoMultijugador : MonoBehaviour
             SceneManager.LoadScene("MenuPrincipal");
         }
     }
+
+        private void OnDestroy()
+{
+    if (GestorUI.Instance != null)
+    {
+        GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
+    }
+}
 }
 
  

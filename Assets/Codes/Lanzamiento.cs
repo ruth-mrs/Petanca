@@ -84,11 +84,9 @@ public class Lanzamiento : MonoBehaviour
                 
                 }else if(wiimote.Button.a){                
                     modoPractica.SeleccionarBoton();
-
-
                 }
                 
-                if (!wiimote.Button.d_up && !wiimote.Button.d_down)
+                if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.a)
                 {
                     modoPractica.LiberarBoton();
                 }
@@ -109,7 +107,7 @@ public class Lanzamiento : MonoBehaviour
                     modoPractica.SalirMenu();
 
                 }                
-                if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.plus)
+                if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.plus && !wiimote.Button.a)
                 {
                     modoPractica.LiberarBoton();
                 }
@@ -250,7 +248,7 @@ public class Lanzamiento : MonoBehaviour
             tiempoTranscurrido += Time.deltaTime;
             yield return null;
         }
-
+        CalcularPuntuacion();
         RecuperarCamara(camaraSeguir);
         modoPractica.FinJuego();
     }
@@ -331,6 +329,8 @@ public class Lanzamiento : MonoBehaviour
         // Actualiza la distancia más cercana en el HUD
         if (distanciaMinima != float.MaxValue)
         {
+            Debug.Log($"Distancia que se enviará al HUD: {distanciaMinima:F6}");
+
             modoPractica.ActualizarDistancia(distanciaMinima);
         }
     }

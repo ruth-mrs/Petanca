@@ -47,6 +47,8 @@ public class EdicionPerfiles : MonoBehaviour
         }
         
         GestorUI.Instance.Inicializar(canvas);
+        GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
+
         GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
         
         // Cargar lista de perfiles
@@ -123,45 +125,16 @@ public class EdicionPerfiles : MonoBehaviour
                 GestorUI.Instance.SeleccionarBoton();
             }
         }
-        else
-        {
-            // Keyboard/Mouse fallback controls
-            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
-            {
-                GestorUI.Instance.MoverMenu(-1);
-            }
-            else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
-            {
-                GestorUI.Instance.MoverMenu(1);
-            }
-
-            // Profile navigation with left/right arrows or A/D keys
-            if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
-            {
-                CambiarPerfilSeleccionado(-1);
-            }
-            else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
-            {
-                CambiarPerfilSeleccionado(1);
-            }
-
-            if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
-                !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
-            {
-                GestorUI.Instance.LiberarBoton();
-            }
-
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
-            {
-                GestorUI.Instance.SeleccionarBoton();
-            }
-        }
-    }
+ }
+        
+    
     
     void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
         Debug.Log("Botón ejecutado: " + botonSeleccionado);
-        // El GestorUI.Instance ya ejecuta el onClick automáticamente
+        if (botonSeleccionado == 4){
+            VolverAConfiguracion();
+        }
     }
     
     // Nuevo método para cambiar perfil seleccionado con botones 1 y 2
@@ -379,4 +352,12 @@ public class EdicionPerfiles : MonoBehaviour
     {
         SceneManager.LoadScene(escenaConfiguracion);
     }
+
+        private void OnDestroy()
+{
+    if (GestorUI.Instance != null)
+    {
+        GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
+    }
+}
 }

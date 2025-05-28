@@ -13,10 +13,21 @@ public class MenuPrincipal : MonoBehaviour
 
     void Start()
     {
-
-        GestorUI.Instance.Inicializar(canvas);
-        GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
         Application.targetFrameRate = 30;
+
+
+        if(GestorUI.Instance == null)
+        {
+            GameObject go = new GameObject("GestorUI");
+            go.AddComponent<GestorUI>();
+
+            GestorUI.Instance.Inicializar(canvas);
+            GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+        }else{
+            GestorUI.Instance.Inicializar(canvas);
+            GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+        }
+
 
     }
     void Update()
@@ -39,46 +50,23 @@ public class MenuPrincipal : MonoBehaviour
             {
                 GestorUI.Instance.MoverMenu(1);
             }
-
-            if (!wiimote.Button.d_up && !wiimote.Button.d_down)
-            {
-                GestorUI.Instance.LiberarBoton();
-            }
-
             if (wiimote.Button.a)
             {
                 GestorUI.Instance.SeleccionarBoton();
             }
-        }
-        else
-        {
-            // Controles alternativos para teclado/rato
-            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
-            {
-                GestorUI.Instance.MoverMenu(-1);
-            }
-            else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
-            {
-                GestorUI.Instance.MoverMenu(1);
             }
 
-            if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
-                !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
+            if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.a)
             {
                 GestorUI.Instance.LiberarBoton();
             }
 
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
-            {
-                GestorUI.Instance.SeleccionarBoton();
-            }
-        }
+        
     }
 
 
     void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
-        Debug.Log("Botón ejecutado: " + botonSeleccionado);
 
         switch (botonSeleccionado)
         {
@@ -123,6 +111,14 @@ public class MenuPrincipal : MonoBehaviour
     {
         Application.Quit();
     }
-    
+
+
+    private void OnDestroy()
+    {   
+    if (GestorUI.Instance != null)
+    {
+        GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
+    }
+    }
 }
 

@@ -179,14 +179,16 @@ public class LanzamientoMultijugador : MonoBehaviour
                 {
                     modoMultijugador.SeleccionarBoton();
                 }
-                else if (wiimote.Button.plus)
+                 else if (wiimote.Button.plus)
                 {
                     modoMultijugador.SalirMenu();
                 }
-                if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.plus)
+                if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.plus && !wiimote.Button.a)
                 {
                     modoMultijugador.LiberarBoton();
                 }
+               
+               
             }
             else
             {
@@ -343,6 +345,8 @@ public class LanzamientoMultijugador : MonoBehaviour
             tiempoTranscurrido += Time.deltaTime;
             yield return null; 
         }
+
+        CalcularPuntuacion();
 
         RecuperarCamara(camara);
 
