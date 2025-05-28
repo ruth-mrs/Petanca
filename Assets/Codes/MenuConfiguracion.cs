@@ -20,6 +20,7 @@ public class MenuConfiguracion : MonoBehaviour
     public Button botonEditarPerfil;  // Para habilitarlo/deshabilitarlo según existan perfiles
     public Canvas canvas;
     public bool wiimotebuttonused = false;
+    
     private void Start()
     {
         // Cargar volumen guardado o usar valor predeterminado (75%)
@@ -34,14 +35,21 @@ public class MenuConfiguracion : MonoBehaviour
             // Asignar listener al cambio de valor
             sliderVolumenGeneral.onValueChanged.AddListener(CambiarVolumen);
         }
+        
         // Aplicar el volumen guardado al audio global
         AudioListener.volume = volumenGuardado;
         
         // Verificar estado del botón editar perfil
         ActualizarEstadoBotones();
-        GestorUI.Instance.Inicializar(canvas);
-        GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;        
+        
+        // Inicializar GestorUI
+        if (GestorUI.Instance != null)
+        {
+            GestorUI.Instance.Inicializar(canvas);
+            GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+        }
     }
+    
     void Update()
     {
         Wiimote wiimote = GestorWiimotes.Instance?.wiimote;
@@ -77,7 +85,8 @@ public class MenuConfiguracion : MonoBehaviour
                 GestorUI.Instance.LiberarBoton();
             }
 
-            if(!wiimote.Button.one && !wiimote.Button.two){
+            if (!wiimote.Button.one && !wiimote.Button.two)
+            {
                 wiimotebuttonused = false;
             }
 
@@ -86,60 +95,33 @@ public class MenuConfiguracion : MonoBehaviour
                 GestorUI.Instance.SeleccionarBoton();
             }
         }
-        else
-        {
-            // Controles alternativos para teclado/rato
-            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
-            {
-                GestorUI.Instance.MoverMenu(-1);
-            }
-            else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
-            {
-                GestorUI.Instance.MoverMenu(1);
-            }
-
-            // Controles de volumen con teclado
-            if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
-            {
-                BajarVolumen();
-            }
-            else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
-            {
-                SubirVolumen();
-            }
-
-            if (!Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.DownArrow) && 
-                !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
-            {
-                GestorUI.Instance.LiberarBoton();
-            }
-
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
-            {
-                GestorUI.Instance.SeleccionarBoton();
-            }
-        }
     }
+    
     private void ActualizarEstadoBotones()
     {
-        // Verificar si existe el gestor de perfiles
+        // Verificar si existe el gestor de perfiles y hay perfiles disponibles
         if (GestorPerfiles.Instancia != null)
         {
             // Habilitar el botón de editar solo si hay perfiles
             if (botonEditarPerfil != null)
             {
-                botonEditarPerfil.interactable = 
-                    GestorPerfiles.Instancia.perfilesUsuarios != null && 
-                    GestorPerfiles.Instancia.perfilesUsuarios.Count > 0;
+                int cantidadPerfiles = GestorPerfiles.Instancia.CantidadPerfiles();
+                botonEditarPerfil.interactable = cantidadPerfiles > 0;
+                
+                Debug.Log($"MenuConfiguracion - Perfiles disponibles: {cantidadPerfiles}, Botón editar habilitado: {botonEditarPerfil.interactable}");
             }
         }
         else
         {
             // Si no hay gestor de perfiles, deshabilitar el botón
             if (botonEditarPerfil != null)
+            {
                 botonEditarPerfil.interactable = false;
+                Debug.LogWarning("MenuConfiguracion - GestorPerfiles no disponible, botón editar deshabilitado");
+            }
         }
     }
+    
     void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
         switch (botonSeleccionado)
@@ -158,6 +140,7 @@ public class MenuConfiguracion : MonoBehaviour
                 break;
         }
     }    
+    
     public void CambiarVolumen(float nuevoVolumen)
     {
         // Actualizar volumen global
@@ -169,7 +152,6 @@ public class MenuConfiguracion : MonoBehaviour
         // Guardar valor para persistencia
         PlayerPrefs.SetFloat("VolumenGeneral", nuevoVolumen);
         PlayerPrefs.Save();
-        
     }
 
     private void SubirVolumen()
@@ -214,29 +196,45 @@ public class MenuConfiguracion : MonoBehaviour
     
     public void IrACrearPerfil()
     {
+        // Limpiar PlayerPrefs de edición para asegurar modo creación
+        PlayerPrefs.SetInt("ModoEdicion", 0);
+        PlayerPrefs.SetInt("IndicePerfilEditar", -1);
+        
         // Guardar cualquier configuración pendiente
         PlayerPrefs.Save();
+        
+        Debug.Log("Navegando a CrearPerfil en modo creación");
         
         // Cargar escena de creación de perfil
         SceneManager.LoadScene(escenaCrearPerfil);
     }
 
-    
     public void IrAEditarPerfil()
     {
         // Verificar si hay perfiles para editar
-        if (GestorPerfiles.Instancia == null || 
-            GestorPerfiles.Instancia.perfilesUsuarios == null || 
-            GestorPerfiles.Instancia.perfilesUsuarios.Count == 0)
+        if (GestorPerfiles.Instancia == null)
+        {
+            Debug.LogWarning("GestorPerfiles no está disponible.");
+            return;
+        }
+        
+        int cantidadPerfiles = GestorPerfiles.Instancia.CantidadPerfiles();
+        if (cantidadPerfiles == 0)
         {
             Debug.LogWarning("No hay perfiles para editar.");
             return;
         }
         
+        // Limpiar PlayerPrefs de edición
+        PlayerPrefs.DeleteKey("ModoEdicion");
+        PlayerPrefs.DeleteKey("IndicePerfilEditar");
+        
         // Guardar cualquier configuración pendiente
         PlayerPrefs.Save();
         
-        // Cargar escena de edición de perfil
+        Debug.Log($"Navegando a EdicionPerfiles con {cantidadPerfiles} perfiles disponibles");
+        
+        // Cargar escena de edición de perfiles
         SceneManager.LoadScene(escenaEditarPerfil);
     }
     
@@ -244,6 +242,8 @@ public class MenuConfiguracion : MonoBehaviour
     {
         // Guardar cualquier configuración pendiente
         PlayerPrefs.Save();
+        
+        Debug.Log("Navegando a MenuAccesibilidad");
         
         // Cargar escena de opciones de accesibilidad
         SceneManager.LoadScene(escenaAccesibilidad);
@@ -254,7 +254,18 @@ public class MenuConfiguracion : MonoBehaviour
         // Guardar cualquier configuración pendiente
         PlayerPrefs.Save();
         
+        Debug.Log("Volviendo al MenuPrincipal");
+        
         // Cargar escena del menú principal
         SceneManager.LoadScene(escenaMenuPrincipal);
+    }
+    
+    void OnDestroy()
+    {
+        // Limpiar eventos
+        if (GestorUI.Instance != null)
+        {
+            GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
+        }
     }
 }

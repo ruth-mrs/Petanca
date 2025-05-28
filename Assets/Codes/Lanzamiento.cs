@@ -20,7 +20,6 @@ public class Lanzamiento : MonoBehaviour
     private Vector3 velocidadMano;
     private Vector3 velocidadObjetivo;
 
-
     private bool isStart = true;
     public GameObject Boliche;
     public ModoPractica modoPractica;
@@ -30,8 +29,10 @@ public class Lanzamiento : MonoBehaviour
 
     private Vector3 posicionInicialCamara;
     private Quaternion rotacionInicialCamara;
+    
+    // Referencias al perfil del jugador
     private PerfilUsuario perfilUsuario;
-
+    private DatosPerfilUsuario datosPerfilJugador;
 
     private Vector3 limiteInferiorPista = new Vector3(-2, 0.05f, 7.78f);
     private Vector3 limiteSuperiorPista = new Vector3(2, 0.05f, 22.78f);
@@ -40,125 +41,178 @@ public class Lanzamiento : MonoBehaviour
 
     private float tiempoEspera = 3f;
 
-
     void Start()
     {
-        if(isStart){
+        InicializarPerfil();
+        InicializarJuego();
+        ConfigurarKinect();
+    }
+
+    void InicializarPerfil()
+    {
+        // Obtener perfil desde ModoPractica
+        if (modoPractica != null)
+        {
+            datosPerfilJugador = modoPractica.ObtenerDatosPerfilJugador();
+            perfilUsuario = modoPractica.ObtenerPerfilJugador();
+        }
+
+        // Fallback si no se encuentra el perfil
+        if (datosPerfilJugador == null && GestorPerfiles.Instancia != null)
+        {
+            datosPerfilJugador = GestorPerfiles.Instancia.ObtenerPerfilActual();
+            perfilUsuario = GestorPerfiles.Instancia.CrearPerfilUsuarioMonoBehaviour(datosPerfilJugador);
+        }
+
+        // Último fallback - crear perfil por defecto
+        if (datosPerfilJugador == null)
+        {
+            datosPerfilJugador = new DatosPerfilUsuario("Jugador", false, false, 2.5f);
+            Debug.LogWarning("Usando perfil por defecto en Lanzamiento");
+        }
+
+        Debug.Log($"Lanzamiento iniciado con perfil: {datosPerfilJugador.nombreUsuario}");
+        Debug.Log($"- Zurdo: {datosPerfilJugador.esZurdo}");
+        Debug.Log($"- Fuerza base: {datosPerfilJugador.fuerzaBase}");
+        Debug.Log($"- Factor ayuda: {datosPerfilJugador.factorAyuda}");
+    }
+
+    void InicializarJuego()
+    {
+        if (isStart)
+        {
             rbBola = Boliche.GetComponent<Rigidbody>();
             if (rbBola != null)
             {
                 rbBola.linearVelocity = Vector3.zero;
                 rbBola.angularVelocity = Vector3.zero;
-                perfilUsuario = GameObject.Find("PerfilUsuario").GetComponent<PerfilUsuario>();
             }
         }
+    }
+
+    void ConfigurarKinect()
+    {
         if (KinectManager.Instance != null && KinectManager.Instance.InicializadoCorrectamente)
         {
             KinectManager.Instance.animator = animator;
         }
 
-        perfilUsuario.esZurdo = true;
-
-        if(perfilUsuario.esZurdo){
+        // Configurar mano según lateralidad del perfil
+        if (datosPerfilJugador != null && datosPerfilJugador.esZurdo)
+        {
             mano = GameObject.Find("mixamorig7:LeftHandMiddle1");
-            KinectManager.Instance.esZurdo = true;
-
-        }else{
+            if (KinectManager.Instance != null)
+                KinectManager.Instance.esZurdo = true;
+        }
+        else
+        {
             mano = GameObject.Find("mixamorig7:RightHandMiddle1");
-            KinectManager.Instance.esZurdo = false;
+            if (KinectManager.Instance != null)
+                KinectManager.Instance.esZurdo = false;
+        }
+
+        if (mano == null)
+        {
+            Debug.LogError("No se encontró el objeto de la mano. Verificar jerarquía del modelo.");
         }
     }
+
     void Update()
     {
         wiimote = GestorWiimotes.Instance?.wiimote;
         if (wiimote != null)
         {
-
-            if(modoPractica.mostrarFinJuego)
+            if (modoPractica.mostrarFinJuego)
             {
-                if(wiimote.Button.d_up){
+                if (wiimote.Button.d_up)
+                {
                     modoPractica.moverMenu(-1);
                 }
-                else if(wiimote.Button.d_down){
+                else if (wiimote.Button.d_down)
+                {
                     modoPractica.moverMenu(1);
-                
-                }else if(wiimote.Button.a){                
+                }
+                else if (wiimote.Button.a)
+                {
                     modoPractica.SeleccionarBoton();
-
-
                 }
                 
                 if (!wiimote.Button.d_up && !wiimote.Button.d_down)
                 {
                     modoPractica.LiberarBoton();
                 }
-              
             }
 
-            if (modoPractica.mostrarPausa){
-                if(wiimote.Button.d_up){
+            if (modoPractica.mostrarPausa)
+            {
+                if (wiimote.Button.d_up)
+                {
                     modoPractica.moverMenu(-1);
                 }
-                else if(wiimote.Button.d_down){
+                else if (wiimote.Button.d_down)
+                {
                     modoPractica.moverMenu(1);
-                
-                }else if(wiimote.Button.a){                
+                }
+                else if (wiimote.Button.a)
+                {
                     modoPractica.SeleccionarBoton();
-
-                }else if(wiimote.Button.plus){                
+                }
+                else if (wiimote.Button.plus)
+                {
                     modoPractica.SalirMenu();
-
-                }                
+                }
+                
                 if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.plus)
                 {
                     modoPractica.LiberarBoton();
                 }
-            }else{ 
-            
-            if(puedeLanzar){
-            int ret;
-            do
-            {
-                ret = wiimote.ReadWiimoteData();
-            } while (ret > 0);
-        
-    
-            if (wiimote.Button.b)
-            {
-                EngancharBola();
             }
-            else if (!wiimote.Button.b && bolaEnganchada)
-            {
-                if(modoPractica != null && !isStart)
+            else
+            { 
+                if (puedeLanzar)
                 {
-                    modoPractica.ReducirBolas();
-                }
-                SoltarBola();
-        
+                    int ret;
+                    do
+                    {
+                        ret = wiimote.ReadWiimoteData();
+                    } while (ret > 0);
             
-            }else if(wiimote.Button.plus && !modoPractica.mostrarPausa && !modoPractica.mostrarFinJuego){
-                modoPractica.PausarJuego();
+                    if (wiimote.Button.b)
+                    {
+                        EngancharBola();
+                    }
+                    else if (!wiimote.Button.b && bolaEnganchada)
+                    {
+                        if (modoPractica != null && !isStart)
+                        {
+                            modoPractica.ReducirBolas();
+                        }
+                        SoltarBola();
+                    }
+                    else if (wiimote.Button.plus && !modoPractica.mostrarPausa && !modoPractica.mostrarFinJuego)
+                    {
+                        modoPractica.PausarJuego();
+                    }
+                }
             }
-            }
-        }
         }
     }
 
-
     void EngancharBola()
     {
-        if (rbBola != null)
+        if (rbBola != null && mano != null)
         {
-            if(!bolaEnganchada){
-                if(!rbBola.isKinematic){
-                rbBola.linearVelocity = Vector3.zero;
-                rbBola.angularVelocity = Vector3.zero;
+            if (!bolaEnganchada)
+            {
+                if (!rbBola.isKinematic)
+                {
+                    rbBola.linearVelocity = Vector3.zero;
+                    rbBola.angularVelocity = Vector3.zero;
                 }
                 rbBola.isKinematic = true;
                 bolaEnganchada = true;
             }
             rbBola.transform.position = mano.transform.position - new Vector3(0, 0.1f, 0);
-            
         }
     }
 
@@ -186,7 +240,13 @@ public class Lanzamiento : MonoBehaviour
             float[] accel = wiimote.Accel.GetCalibratedAccelData();
             float rapidezMovimiento = Mathf.Sqrt(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
     
-            float fuerzaLanzamiento = rapidezMovimiento * perfilUsuario.getFuerzaBase();
+            // Usar el factor de fuerza del perfil actualizado
+            float fuerzaBase = datosPerfilJugador != null ? datosPerfilJugador.fuerzaBase : 2.5f;
+            float factorAyuda = datosPerfilJugador != null ? datosPerfilJugador.factorAyuda : 1.0f;
+            
+            float fuerzaLanzamiento = rapidezMovimiento * fuerzaBase * factorAyuda;
+    
+            Debug.Log($"Lanzamiento - Rapidez: {rapidezMovimiento:F2}, Fuerza base: {fuerzaBase:F2}, Factor ayuda: {factorAyuda:F2}, Fuerza final: {fuerzaLanzamiento:F2}");
     
             bolaEnganchada = false;
             rbBola.isKinematic = false;
@@ -217,7 +277,6 @@ public class Lanzamiento : MonoBehaviour
 
         var camaraSeguir = SeguirCamara();
 
-
         float tiempoTranscurrido = 0f;
 
         while (tiempoTranscurrido < tiempoEspera)
@@ -228,8 +287,7 @@ public class Lanzamiento : MonoBehaviour
 
         RecuperarCamara(camaraSeguir);
 
-
-        if(EstaDentroDeLaPista(Boliche.transform.position))
+        if (EstaDentroDeLaPista(Boliche.transform.position))
         {
             isStart = false;
             InstanciarBola();
@@ -239,7 +297,6 @@ public class Lanzamiento : MonoBehaviour
 
     private IEnumerator EsperarYFinalizarJuego()
     {
-       
         puedeLanzar = false;
 
         var camaraSeguir = SeguirCamara();
@@ -274,10 +331,8 @@ public class Lanzamiento : MonoBehaviour
             RecuperarCamara(camaraSeguir);
             InstanciarBola();        
             puedeLanzar = true;
-            
         }
     }
-
 
     private CamaraSeguirBola SeguirCamara()
     {
@@ -296,10 +351,10 @@ public class Lanzamiento : MonoBehaviour
         camaraSeguir.DetenerSeguimiento();
         Camera.main.transform.position = posicionInicialCamara;
         Camera.main.transform.rotation = rotacionInicialCamara;
-
     }
 
-    private void InstanciarBola(){
+    private void InstanciarBola()
+    {
         rbBola = Instantiate(Bola, Bola.transform.position, Quaternion.identity).GetComponent<Rigidbody>();
         rbBola.gameObject.tag = "Bola";
         rbBola.linearVelocity = Vector3.zero;
@@ -309,14 +364,11 @@ public class Lanzamiento : MonoBehaviour
 
     public void CalcularPuntuacion()
     {
-        // Encuentra todas las bolas en la escena con el tag "Bola"
         GameObject[] bolas = GameObject.FindGameObjectsWithTag("Bola");
 
-        // Inicializa la distancia mínima con un valor alto
         float distanciaMinima = float.MaxValue;
         GameObject bolaMasCercana = null;
 
-        // Itera sobre todas las bolas para encontrar la más cercana al boliche
         foreach (GameObject bola in bolas)
         {
             float distancia = Vector3.Distance(bola.transform.position, Boliche.transform.position);
@@ -328,17 +380,27 @@ public class Lanzamiento : MonoBehaviour
             }
         }
 
-        // Actualiza la distancia más cercana en el HUD
         if (distanciaMinima != float.MaxValue)
         {
             modoPractica.ActualizarDistancia(distanciaMinima);
+            
+            // Actualizar visualización de la bola más cercana
+            if (bolaMasCercana != null)
+            {
+                modoPractica.ActualizarBolaMasCercana(bolaMasCercana, distanciaMinima);
+            }
         }
     }
 
-    private bool EstaDentroDeLaPista(Vector3 posicion){
-            
-    return posicion.x >= limiteInferiorPista.x && posicion.x <= limiteSuperiorPista.x &&
-           posicion.z >= limiteInferiorPista.z && posicion.z <= limiteSuperiorPista.z;
+    private bool EstaDentroDeLaPista(Vector3 posicion)
+    {
+        return posicion.x >= limiteInferiorPista.x && posicion.x <= limiteSuperiorPista.x &&
+               posicion.z >= limiteInferiorPista.z && posicion.z <= limiteSuperiorPista.z;
     }
-  
+
+    // Método público para obtener el perfil actual
+    public DatosPerfilUsuario ObtenerPerfilActual()
+    {
+        return datosPerfilJugador;
+    }
 }

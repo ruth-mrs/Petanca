@@ -8,7 +8,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-
 public class LanzamientoMultijugador : MonoBehaviour
 {
     public GameObject Bola;
@@ -34,11 +33,12 @@ public class LanzamientoMultijugador : MonoBehaviour
     private Vector3 posicionInicialBrazo;
     private Vector3 posicionFinalBrazo;
 
-    public PerfilUsuario perfilUsuario;
-
-    public PerfilUsuario perfilUsuario2;
-
-    private PerfilUsuario selected;
+    // Referencias a perfiles actualizadas
+    private PerfilUsuario perfilUsuario1;
+    private PerfilUsuario perfilUsuario2;
+    private DatosPerfilUsuario datosPerfilJugador1;
+    private DatosPerfilUsuario datosPerfilJugador2;
+    private DatosPerfilUsuario perfilActualSeleccionado;
 
     private int turno = 1;
 
@@ -56,19 +56,68 @@ public class LanzamientoMultijugador : MonoBehaviour
     private bool turnAssigned = false;
     private float tiempoEspera = 3f;
 
-
-
     void Start()
     {
-        if (mano == null)
+        InicializarPerfiles();
+        InicializarJuego();
+        ConfigurarKinect();
+    }
+
+    void InicializarPerfiles()
+    {
+        // Obtener perfiles desde ModoMultijugador
+        if (modoMultijugador != null)
         {
-            mano = GameObject.Find("Mano");
-            if (mano == null)
+            datosPerfilJugador1 = modoMultijugador.ObtenerDatosPerfilJugador(1);
+            datosPerfilJugador2 = modoMultijugador.ObtenerDatosPerfilJugador(2);
+            perfilUsuario1 = modoMultijugador.ObtenerPerfilJugador(1);
+            perfilUsuario2 = modoMultijugador.ObtenerPerfilJugador(2);
+        }
+
+        // Fallback si no se encuentran los perfiles
+        if (datosPerfilJugador1 == null || datosPerfilJugador2 == null)
+        {
+            Debug.LogWarning("No se encontraron perfiles desde ModoMultijugador. Usando fallback.");
+            
+            if (GestorPerfiles.Instancia != null)
             {
-                Debug.LogError("No se encontró el objeto 'Mano'. Asegúrate de que exista en la escena.");
+                var perfilesDisponibles = GestorPerfiles.Instancia.ObtenerPerfiles();
+                
+                if (datosPerfilJugador1 == null)
+                {
+                    datosPerfilJugador1 = perfilesDisponibles.Count > 0 ? 
+                        perfilesDisponibles[0] : 
+                        new DatosPerfilUsuario("Jugador 1", false, false, 2.5f);
+                    
+                    perfilUsuario1 = GestorPerfiles.Instancia.CrearPerfilUsuarioMonoBehaviour(datosPerfilJugador1);
+                }
+                
+                if (datosPerfilJugador2 == null)
+                {
+                    datosPerfilJugador2 = perfilesDisponibles.Count > 1 ? 
+                        perfilesDisponibles[1] : 
+                        new DatosPerfilUsuario("Jugador 2", true, false, 2.5f);
+                    
+                    perfilUsuario2 = GestorPerfiles.Instancia.CrearPerfilUsuarioMonoBehaviour(datosPerfilJugador2);
+                }
+            }
+            else
+            {
+                // Crear perfiles por defecto
+                datosPerfilJugador1 = new DatosPerfilUsuario("Jugador 1", false, false, 2.5f);
+                datosPerfilJugador2 = new DatosPerfilUsuario("Jugador 2", true, false, 2.5f);
+                
+                Debug.LogWarning("Usando perfiles por defecto en LanzamientoMultijugador");
             }
         }
 
+        Debug.Log($"LanzamientoMultijugador iniciado:");
+        Debug.Log($"Jugador 1: {datosPerfilJugador1.nombreUsuario} (Zurdo: {datosPerfilJugador1.esZurdo}, Fuerza: {datosPerfilJugador1.fuerzaBase})");
+        Debug.Log($"Jugador 2: {datosPerfilJugador2.nombreUsuario} (Zurdo: {datosPerfilJugador2.esZurdo}, Fuerza: {datosPerfilJugador2.fuerzaBase})");
+    }
+
+    void InicializarJuego()
+    {
         if (isStart)
         {
             rbBola = Boliche.GetComponent<Rigidbody>();
@@ -76,74 +125,28 @@ public class LanzamientoMultijugador : MonoBehaviour
             {
                 rbBola.linearVelocity = Vector3.zero;
                 rbBola.angularVelocity = Vector3.zero;
-
             }
-
-            perfilUsuario = new PerfilUsuario("Jugador 1", false, false);
-            perfilUsuario2 = new PerfilUsuario("Jugador 2", true, false);
-
         }
+    }
 
+    void ConfigurarKinect()
+    {
         if (KinectManager.Instance != null && KinectManager.Instance.InicializadoCorrectamente)
         {
             KinectManager.Instance.animator = animator;
-            Debug.Log("Kinect asignada correctamente desde el script dependiente.");
+            Debug.Log("Kinect asignada correctamente desde LanzamientoMultijugador.");
         }
     }
 
     void Update()
     {
-
         if (!turnAssigned)
         {
-
-            if (turno % 2 == 0)
-            {
-                wiimote = GestorWiimotes.Instance?.wiimote2;
-                selected = perfilUsuario2;
-
-                Renderer renderer = cuerpo.GetComponent<Renderer>();
-                if (renderer.material != rojo)
-                {
-                    renderer.material = rojo;
-                    renderer = piernas.GetComponent<Renderer>();
-                    renderer.material = rojo;
-                }
-
-            }
-            else
-            {
-                wiimote = GestorWiimotes.Instance?.wiimote;
-                selected = perfilUsuario;
-
-
-                Renderer renderer = cuerpo.GetComponent<Renderer>();
-                if (renderer.material != azul)
-                {
-                    renderer.material = azul;
-                    renderer = piernas.GetComponent<Renderer>();
-                    renderer.material = azul;
-                }
-
-            }
-
-            if (selected.esZurdo)
-            {
-                mano = GameObject.Find("mixamorig7:LeftHandMiddle1");
-                KinectManager.Instance.esZurdo = true;
-            }
-            else
-            {
-                mano = GameObject.Find("mixamorig7:RightHandMiddle1");
-                KinectManager.Instance.esZurdo = false;
-            }
-            turnAssigned = true;
+            AsignarTurno();
         }
-
 
         if (wiimote != null)
         {
-
             if (modoMultijugador.mostrarFinJuego)
             {
                 if (wiimote.Button.d_up)
@@ -153,7 +156,6 @@ public class LanzamientoMultijugador : MonoBehaviour
                 else if (wiimote.Button.d_down)
                 {
                     modoMultijugador.moverMenu(1);
-
                 }
                 else if (wiimote.Button.a)
                 {
@@ -198,7 +200,6 @@ public class LanzamientoMultijugador : MonoBehaviour
                         ret = wiimote.ReadWiimoteData();
                     } while (ret > 0);
 
-
                     if (wiimote.Button.b)
                     {
                         EngancharBola();
@@ -217,8 +218,6 @@ public class LanzamientoMultijugador : MonoBehaviour
                             }
                         }
                         SoltarBola();
-
-
                     }
                     else if (wiimote.Button.plus && !modoMultijugador.mostrarPausa && !modoMultijugador.mostrarFinJuego)
                     {
@@ -229,19 +228,74 @@ public class LanzamientoMultijugador : MonoBehaviour
         }
     }
 
+    void AsignarTurno()
+    {
+        if (turno % 2 == 0)
+        {
+            // Turno del Jugador 2
+            wiimote = GestorWiimotes.Instance?.wiimote2;
+            perfilActualSeleccionado = datosPerfilJugador2;
+
+            // Cambiar color a rojo
+            Renderer renderer = cuerpo.GetComponent<Renderer>();
+            if (renderer.material != rojo)
+            {
+                renderer.material = rojo;
+                renderer = piernas.GetComponent<Renderer>();
+                renderer.material = rojo;
+            }
+        }
+        else
+        {
+            // Turno del Jugador 1
+            wiimote = GestorWiimotes.Instance?.wiimote;
+            perfilActualSeleccionado = datosPerfilJugador1;
+
+            // Cambiar color a azul
+            Renderer renderer = cuerpo.GetComponent<Renderer>();
+            if (renderer.material != azul)
+            {
+                renderer.material = azul;
+                renderer = piernas.GetComponent<Renderer>();
+                renderer.material = azul;
+            }
+        }
+
+        // Configurar mano según lateralidad del perfil actual
+        if (perfilActualSeleccionado.esZurdo)
+        {
+            mano = GameObject.Find("mixamorig7:LeftHandMiddle1");
+            if (KinectManager.Instance != null)
+                KinectManager.Instance.esZurdo = true;
+        }
+        else
+        {
+            mano = GameObject.Find("mixamorig7:RightHandMiddle1");
+            if (KinectManager.Instance != null)
+                KinectManager.Instance.esZurdo = false;
+        }
+
+        if (mano == null)
+        {
+            Debug.LogError($"No se encontró la mano para el jugador {(turno % 2 == 0 ? 2 : 1)}");
+        }
+
+        turnAssigned = true;
+        
+        Debug.Log($"Turno asignado al Jugador {(turno % 2 == 0 ? 2 : 1)} - {perfilActualSeleccionado.nombreUsuario} (Zurdo: {perfilActualSeleccionado.esZurdo})");
+    }
 
     void EngancharBola()
     {
-        if (rbBola != null)
+        if (rbBola != null && mano != null)
         {
             if (!bolaEnganchada)
             {
-                if(!rbBola.isKinematic)
+                if (!rbBola.isKinematic)
                 {
                     rbBola.linearVelocity = Vector3.zero;
                     rbBola.angularVelocity = Vector3.zero;
                 }
-               
                 rbBola.isKinematic = true;
                 bolaEnganchada = true;
             }
@@ -251,7 +305,7 @@ public class LanzamientoMultijugador : MonoBehaviour
 
     void SoltarBola()
     {
-        if (rbBola != null)
+        if (rbBola != null && perfilActualSeleccionado != null)
         {
             var (pecho, muñeca) = KinectManager.Instance.ObtenerDireccionBrazoExtendido();
             Vector3 direccionCruda = (muñeca - pecho).normalized;
@@ -269,23 +323,21 @@ public class LanzamientoMultijugador : MonoBehaviour
             float[] accel = wiimote.Accel.GetCalibratedAccelData();
             float rapidezMovimiento = Mathf.Sqrt(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
 
-            float fuerzaLanzamiento = 0f;
-            if (turno % 2 == 0)
-            {
-                fuerzaLanzamiento = rapidezMovimiento * perfilUsuario2.getFuerzaBase();
-            }
-            else if (turno % 2 == 1)
-            {
-                fuerzaLanzamiento = rapidezMovimiento * perfilUsuario.getFuerzaBase();
-            }
+            // Usar la fuerza del perfil del jugador actual
+            float fuerzaBase = perfilActualSeleccionado.fuerzaBase;
+            float factorAyuda = perfilActualSeleccionado.factorAyuda;
+            float fuerzaLanzamiento = rapidezMovimiento * fuerzaBase * factorAyuda;
+
+            int jugadorActual = turno % 2 == 0 ? 2 : 1;
+            Debug.Log($"Lanzamiento Jugador {jugadorActual} - Rapidez: {rapidezMovimiento:F2}, Fuerza base: {fuerzaBase:F2}, Factor ayuda: {factorAyuda:F2}, Fuerza final: {fuerzaLanzamiento:F2}");
 
             bolaEnganchada = false;
             rbBola.isKinematic = false;
             rbBola.linearVelocity = direccionLanzamiento * fuerzaLanzamiento;
+
             if (isStart)
             {
                 StartCoroutine(EsperarBoliche());
-
             }
             else
             {
@@ -293,12 +345,10 @@ public class LanzamientoMultijugador : MonoBehaviour
                 {
                     puedeLanzar = false;
                     StartCoroutine(EsperarYFinalizarJuego());
-
                 }
                 else
                 {
                     StartCoroutine(EsperarYCalcularPuntuacion());
-
                 }
             }
         }
@@ -371,7 +421,6 @@ public class LanzamientoMultijugador : MonoBehaviour
             ReiniciarCuerpo();
             AvanzarTurno();          
             puedeLanzar = true;
-
         }
     }
 
@@ -392,7 +441,6 @@ public class LanzamientoMultijugador : MonoBehaviour
         camaraSeguir.DetenerSeguimiento();
         Camera.main.transform.position = posicionInicialCamara;
         Camera.main.transform.rotation = rotacionInicialCamara;
-
     }
 
     public void instanciarBola(int jugador)
@@ -418,33 +466,31 @@ public class LanzamientoMultijugador : MonoBehaviour
     {
         turno += 1;
         turnAssigned = false;
-
-
     }
 
     public void ReiniciarCuerpo()
     {
-        Transform upperArmBone = animator.GetBoneTransform(selected.esZurdo ? HumanBodyBones.LeftUpperArm : HumanBodyBones.RightUpperArm);
-        Transform lowerArmBone = animator.GetBoneTransform(selected.esZurdo ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm);
-
-        if (upperArmBone && lowerArmBone)
+        if (perfilActualSeleccionado != null)
         {
-            upperArmBone.localRotation = Quaternion.identity;
-            lowerArmBone.localRotation = Quaternion.identity;
+            Transform upperArmBone = animator.GetBoneTransform(perfilActualSeleccionado.esZurdo ? HumanBodyBones.LeftUpperArm : HumanBodyBones.RightUpperArm);
+            Transform lowerArmBone = animator.GetBoneTransform(perfilActualSeleccionado.esZurdo ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm);
 
+            if (upperArmBone && lowerArmBone)
+            {
+                upperArmBone.localRotation = Quaternion.identity;
+                lowerArmBone.localRotation = Quaternion.identity;
+            }
         }
     }
 
     public void CalcularPuntuacion()
     {
-        // Obtener las bolas de cada jugador
         GameObject[] bolasJugador1 = GameObject.FindGameObjectsWithTag("BolaJugador1");
         GameObject[] bolasJugador2 = GameObject.FindGameObjectsWithTag("BolaJugador2");
 
         float distanciaMinimaJugador1 = float.MaxValue;
         float distanciaMinimaJugador2 = float.MaxValue;
 
-        // Calcular la distancia mínima para las bolas del jugador 1
         foreach (GameObject bola in bolasJugador1)
         {
             float distancia = Vector3.Distance(bola.transform.position, Boliche.transform.position);
@@ -454,7 +500,6 @@ public class LanzamientoMultijugador : MonoBehaviour
             }
         }
 
-        // Calcular la distancia mínima para las bolas del jugador 2
         foreach (GameObject bola in bolasJugador2)
         {
             float distancia = Vector3.Distance(bola.transform.position, Boliche.transform.position);
@@ -480,30 +525,23 @@ public class LanzamientoMultijugador : MonoBehaviour
             modoMultijugador.ActualizarDistancia(distanciaMinimaJugador2, 2);
         }
     }
-    private Vector3 ObtenerPosicionBrazo()
-    {
-        if (KinectManager.Instance == null || !KinectManager.Instance.InicializadoCorrectamente || KinectManager.Instance.kinectDevice == null || KinectManager.Instance.bodyTracker == null)
-        {
-            return Vector3.zero;
-        }
-        try
-        {
-            return KinectManager.Instance.wristPos;
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError("Error obteniendo posición del brazo: " + ex.Message);
-            return Vector3.zero;
-        }
-    }
 
     private bool EstaDentroDeLaPista(Vector3 posicion)
     {
-
         Debug.Log($"Posición de la bola: {posicion}, Límites de la pista: Inferior {limiteInferiorPista}, Superior {limiteSuperiorPista}");
 
         return posicion.x >= limiteInferiorPista.x && posicion.x <= limiteSuperiorPista.x &&
                posicion.z >= limiteInferiorPista.z && posicion.z <= limiteSuperiorPista.z;
     }
-}
 
+    // Métodos públicos para obtener información de perfiles
+    public DatosPerfilUsuario ObtenerPerfilJugador(int numeroJugador)
+    {
+        return numeroJugador == 1 ? datosPerfilJugador1 : datosPerfilJugador2;
+    }
+
+    public DatosPerfilUsuario ObtenerPerfilActual()
+    {
+        return perfilActualSeleccionado;
+    }
+}

@@ -6,6 +6,9 @@ public class GestorPerfiles : MonoBehaviour
 {
     // Singleton para acceso global
     private static GestorPerfiles _instancia;
+
+    private List<DatosPerfilUsuario> perfilesGuardados = new List<DatosPerfilUsuario>();
+    
     public static GestorPerfiles Instancia
     {
         get
@@ -20,11 +23,8 @@ public class GestorPerfiles : MonoBehaviour
         }
     }
     
-    // Lista de perfiles disponibles
-    public List<PerfilUsuario> perfilesUsuarios = new List<PerfilUsuario>();
-    
-    // Perfil actualmente seleccionado
-    public PerfilUsuario perfilActual;
+    // Perfil actualmente seleccionado (índice)
+    public int indicePerfilActual = 0;
     
     // Nombres para generación aleatoria
     private string[] nombresJugadores = new string[]
@@ -53,17 +53,17 @@ public class GestorPerfiles : MonoBehaviour
         CargarPerfiles();
         
         // Si no hay perfiles, crear uno por defecto
-        if (perfilesUsuarios.Count == 0)
+        if (perfilesGuardados.Count == 0)
         {
-            PerfilUsuario perfilPredeterminado = new PerfilUsuario("Jugador", false, false, 2.5f);
-            perfilesUsuarios.Add(perfilPredeterminado);
-            perfilActual = perfilPredeterminado;
+            DatosPerfilUsuario perfilPredeterminado = new DatosPerfilUsuario("Jugador", false, false, 2.5f);
+            perfilesGuardados.Add(perfilPredeterminado);
+            indicePerfilActual = 0;
             GuardarPerfiles();
         }
-        else if (perfilActual == null && perfilesUsuarios.Count > 0)
+        else if (indicePerfilActual >= perfilesGuardados.Count)
         {
-            // Seleccionar el primer perfil si no hay uno activo
-            perfilActual = perfilesUsuarios[0];
+            // Ajustar índice si está fuera de rango
+            indicePerfilActual = 0;
         }
     }
     
@@ -75,31 +75,38 @@ public class GestorPerfiles : MonoBehaviour
     }
     
     // Crear un nuevo perfil
-    public void CrearPerfil(string nombre, bool esZurdo, bool perfilReducido, float aceleracionMaxima)
+    public void CrearPerfil(string nombre, bool esZurdo, bool perfilReducido, float aceleracionMaxima = 0f)
     {
         Debug.Log($"GestorPerfiles - Creando perfil: {nombre}, Zurdo: {esZurdo}, Reducido: {perfilReducido}, Aceleración: {aceleracionMaxima}");
         
-        PerfilUsuario nuevoPerfil = new PerfilUsuario(nombre, esZurdo, perfilReducido, aceleracionMaxima);
+        DatosPerfilUsuario nuevoPerfil = new DatosPerfilUsuario(nombre, esZurdo, perfilReducido, aceleracionMaxima);
         
-        perfilesUsuarios.Add(nuevoPerfil);
-        perfilActual = nuevoPerfil;
+        perfilesGuardados.Add(nuevoPerfil);
+        indicePerfilActual = perfilesGuardados.Count - 1; // Seleccionar el nuevo perfil
         
-        Debug.Log($"GestorPerfiles - Perfil añadido. Total perfiles: {perfilesUsuarios.Count}");
+        Debug.Log($"GestorPerfiles - Perfil añadido. Total perfiles: {perfilesGuardados.Count}");
         
         GuardarPerfiles();
     }
     
-    // Actualizar un perfil existente
-    public void ActualizarPerfil(PerfilUsuario perfil, string nombre, bool esZurdo, bool perfilReducido, float aceleracionMaxima)
+    // Actualizar un perfil existente por índice
+    public void ActualizarPerfil(int indice, string nombre, bool esZurdo, bool perfilReducido, float aceleracionMaxima = -1f)
     {
-        Debug.Log($"GestorPerfiles - Actualizando perfil: {nombre}");
+        if (indice < 0 || indice >= perfilesGuardados.Count)
+        {
+            Debug.LogError($"Índice de perfil inválido: {indice}");
+            return;
+        }
         
+        Debug.Log($"GestorPerfiles - Actualizando perfil en índice {indice}: {nombre}");
+        
+        DatosPerfilUsuario perfil = perfilesGuardados[indice];
         perfil.nombreUsuario = nombre;
         perfil.esZurdo = esZurdo;
         perfil.perfilReducido = perfilReducido;
         
-        // Solo actualizar aceleración si se recalibró (valor > 0)
-        if (aceleracionMaxima > 0)
+        // Solo actualizar aceleración si se recalibró (valor >= 0)
+        if (aceleracionMaxima >= 0)
         {
             perfil.aceleracionMaximaCalibrada = aceleracionMaxima;
             perfil.actualizarFactorAyuda();
@@ -108,40 +115,108 @@ public class GestorPerfiles : MonoBehaviour
         GuardarPerfiles();
     }
     
-    // Eliminar un perfil
-    public void EliminarPerfil(PerfilUsuario perfil)
+    // Actualizar perfil actual
+    public void ActualizarPerfilActual(string nombre, bool esZurdo, bool perfilReducido, float aceleracionMaxima = -1f)
     {
-        if (perfilesUsuarios.Count <= 1)
+        ActualizarPerfil(indicePerfilActual, nombre, esZurdo, perfilReducido, aceleracionMaxima);
+    }
+    
+    // Eliminar un perfil por índice
+    public void EliminarPerfil(int indice)
+    {
+        if (indice < 0 || indice >= perfilesGuardados.Count)
+        {
+            Debug.LogError($"Índice de perfil inválido: {indice}");
+            return;
+        }
+        
+        if (perfilesGuardados.Count <= 1)
         {
             Debug.LogWarning("No se puede eliminar el único perfil existente");
             return;
         }
         
-        // Si es el perfil actual, cambiar a otro
-        if (perfil == perfilActual)
+        Debug.Log($"GestorPerfiles - Eliminando perfil en índice {indice}: {perfilesGuardados[indice].nombreUsuario}");
+        
+        perfilesGuardados.RemoveAt(indice);
+        
+        // Ajustar índice del perfil actual
+        if (indicePerfilActual >= perfilesGuardados.Count)
         {
-            int indice = perfilesUsuarios.IndexOf(perfil);
-            int nuevoIndice = (indice + 1) % perfilesUsuarios.Count;
-            if (nuevoIndice == indice) nuevoIndice = (indice > 0) ? indice - 1 : 0;
-            
-            perfilActual = perfilesUsuarios[nuevoIndice];
+            indicePerfilActual = perfilesGuardados.Count - 1;
+        }
+        else if (indicePerfilActual > indice)
+        {
+            indicePerfilActual--;
         }
         
-        perfilesUsuarios.Remove(perfil);
         GuardarPerfiles();
+    }
+    
+    // Eliminar perfil actual
+    public void EliminarPerfilActual()
+    {
+        EliminarPerfil(indicePerfilActual);
+    }
+    
+    // Obtener perfil por índice
+    public DatosPerfilUsuario ObtenerPerfil(int indice)
+    {
+        if (indice < 0 || indice >= perfilesGuardados.Count)
+        {
+            Debug.LogError($"Índice de perfil inválido: {indice}");
+            return null;
+        }
+        
+        return perfilesGuardados[indice];
+    }
+    
+    // Obtener perfil actual
+    public DatosPerfilUsuario ObtenerPerfilActual()
+    {
+        return ObtenerPerfil(indicePerfilActual);
+    }
+    
+    // Obtener todos los perfiles
+    public List<DatosPerfilUsuario> ObtenerPerfiles()
+    {
+        return new List<DatosPerfilUsuario>(perfilesGuardados); // Devolver copia para evitar modificaciones externas
+    }
+    
+    // Cambiar perfil actual
+    public void CambiarPerfilActual(int nuevoIndice)
+    {
+        if (nuevoIndice < 0 || nuevoIndice >= perfilesGuardados.Count)
+        {
+            Debug.LogError($"Índice de perfil inválido: {nuevoIndice}");
+            return;
+        }
+        
+        indicePerfilActual = nuevoIndice;
+        Debug.Log($"Perfil actual cambiado a: {perfilesGuardados[indicePerfilActual].nombreUsuario}");
+    }
+    
+    // Obtener cantidad de perfiles
+    public int CantidadPerfiles()
+    {
+        return perfilesGuardados.Count;
+    }
+    
+    // Crear PerfilUsuario (MonoBehaviour) desde DatosPerfilUsuario
+    public PerfilUsuario CrearPerfilUsuarioMonoBehaviour(DatosPerfilUsuario datos)
+    {
+        GameObject go = new GameObject($"PerfilUsuario_{datos.nombreUsuario}");
+        PerfilUsuario perfilMB = go.AddComponent<PerfilUsuario>();
+        perfilMB.InicializarConDatos(datos);
+        return perfilMB;
     }
     
     // Guardar todos los perfiles en archivo
     public void GuardarPerfiles()
     {
         PerfilesData data = new PerfilesData();
-        data.perfiles = perfilesUsuarios;
-        
-        // También guardar índice del perfil actual para recuperarlo al cargar
-        if (perfilActual != null)
-        {
-            data.indicePerfilActivo = perfilesUsuarios.IndexOf(perfilActual);
-        }
+        data.perfiles = perfilesGuardados;
+        data.indicePerfilActivo = indicePerfilActual;
         
         string json = JsonUtility.ToJson(data, true);
         string rutaArchivo = Path.Combine(Application.persistentDataPath, "perfiles.json");
@@ -150,7 +225,7 @@ public class GestorPerfiles : MonoBehaviour
         {
             File.WriteAllText(rutaArchivo, json);
             Debug.Log("Perfiles guardados en: " + rutaArchivo);
-            Debug.Log("JSON guardado: " + json);
+            Debug.Log($"Guardados {perfilesGuardados.Count} perfiles, perfil actual: {indicePerfilActual}");
         }
         catch (System.Exception e)
         {
@@ -168,43 +243,74 @@ public class GestorPerfiles : MonoBehaviour
             try
             {
                 string json = File.ReadAllText(rutaArchivo);
-                Debug.Log("JSON cargado: " + json);
+                Debug.Log("Cargando perfiles desde: " + rutaArchivo);
                 
                 PerfilesData data = JsonUtility.FromJson<PerfilesData>(json);
                 
-                if (data != null && data.perfiles != null)
+                if (data != null && data.perfiles != null && data.perfiles.Count > 0)
                 {
-                    perfilesUsuarios = data.perfiles;
+                    perfilesGuardados = data.perfiles;
                     
-                    // Recuperar el perfil activo
-                    if (data.indicePerfilActivo >= 0 && data.indicePerfilActivo < perfilesUsuarios.Count)
+                    // Recuperar el índice del perfil activo
+                    if (data.indicePerfilActivo >= 0 && data.indicePerfilActivo < perfilesGuardados.Count)
                     {
-                        perfilActual = perfilesUsuarios[data.indicePerfilActivo];
+                        indicePerfilActual = data.indicePerfilActivo;
                     }
-                    else if (perfilesUsuarios.Count > 0)
+                    else
                     {
-                        perfilActual = perfilesUsuarios[0];
+                        indicePerfilActual = 0;
                     }
                     
-                    Debug.Log($"Cargados {perfilesUsuarios.Count} perfiles");
+                    Debug.Log($"Cargados {perfilesGuardados.Count} perfiles, perfil actual: {indicePerfilActual}");
+                }
+                else
+                {
+                    Debug.LogWarning("Datos de perfiles inválidos o vacíos");
+                    perfilesGuardados.Clear();
                 }
             }
             catch (System.Exception e)
             {
                 Debug.LogError("Error al cargar perfiles: " + e.Message);
+                perfilesGuardados.Clear();
             }
         }
         else
         {
             Debug.Log("No se encontró archivo de perfiles. Se crearán perfiles por defecto.");
+            perfilesGuardados.Clear();
         }
+    }
+    
+    // Verificar si existe un perfil con el nombre dado
+    public bool ExistePerfilConNombre(string nombre)
+    {
+        foreach (var perfil in perfilesGuardados)
+        {
+            if (perfil.nombreUsuario.Equals(nombre, System.StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // Obtener nombres de todos los perfiles
+    public List<string> ObtenerNombresPerfiles()
+    {
+        List<string> nombres = new List<string>();
+        foreach (var perfil in perfilesGuardados)
+        {
+            nombres.Add(perfil.nombreUsuario);
+        }
+        return nombres;
     }
     
     // Clase auxiliar para serialización
     [System.Serializable]
     private class PerfilesData
     {
-        public List<PerfilUsuario> perfiles;
-        public int indicePerfilActivo = -1;
+        public List<DatosPerfilUsuario> perfiles = new List<DatosPerfilUsuario>();
+        public int indicePerfilActivo = 0;
     }
 }

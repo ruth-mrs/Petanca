@@ -1,64 +1,85 @@
 using UnityEngine;
 using System;
 
-[System.Serializable]
-public class PerfilUsuario // ELIMINADO: MonoBehaviour
+public class PerfilUsuario : MonoBehaviour
 {
-    public string nombreUsuario;
-    public float fuerzaBase = 7f;
-    public bool esZurdo = false;
-    public bool perfilReducido = false; 
-    public float factorAyuda = 1.0f;
-    public float sensibilidadMovimiento = 1.0f;
-    public float aceleracionMaximaCalibrada = 0f;
-    public long fechaCreacion;
+    [SerializeField] private DatosPerfilUsuario datos;
 
-    public PerfilUsuario()
+    public string nombreUsuario
     {
-        fechaCreacion = DateTime.Now.Ticks;
-    }
-    
-    public PerfilUsuario(string nombre, bool zurdo, bool reducido)
-    {
-        nombreUsuario = nombre;
-        esZurdo = zurdo;
-        perfilReducido = reducido;
-        fechaCreacion = DateTime.Now.Ticks;
+        get { return datos.nombreUsuario; }
+        set { datos.nombreUsuario = value; }
     }
 
-    // NUEVO: Constructor completo para la creación de perfiles
-    public PerfilUsuario(string nombre, bool zurdo, bool reducido, float aceleracion)
+    public float fuerzaBase
     {
-        nombreUsuario = nombre;
-        esZurdo = zurdo;
-        perfilReducido = reducido;
-        aceleracionMaximaCalibrada = aceleracion;
-        fechaCreacion = DateTime.Now.Ticks;
-        actualizarFactorAyuda();
+        get { return datos.fuerzaBase; }
+        set { datos.fuerzaBase = value; }
+    }
+
+    public bool esZurdo
+    {
+        get { return datos.esZurdo; }
+        set { datos.esZurdo = value; }
+    }
+
+    public bool perfilReducido
+    {
+        get { return datos.perfilReducido; }
+        set { datos.perfilReducido = value; }
+    }
+
+    public float factorAyuda
+    {
+        get { return datos.factorAyuda; }
+        set { datos.factorAyuda = value; }
+    }
+
+    public float sensibilidadMovimiento
+    {
+        get { return datos.sensibilidadMovimiento; }
+        set { datos.sensibilidadMovimiento = value; }
+    }
+
+    public float aceleracionMaximaCalibrada
+    {
+        get { return datos.aceleracionMaximaCalibrada; }
+        set { datos.aceleracionMaximaCalibrada = value; }
+    }
+
+    public long fechaCreacion
+    {
+        get { return datos.fechaCreacion; }
+    }
+
+    void Awake()
+    {
+        if (datos == null)
+            datos = new DatosPerfilUsuario();
+    }
+
+    public void InicializarConDatos(DatosPerfilUsuario datosExistentes)
+    {
+        datos = datosExistentes;
+    }
+
+    public DatosPerfilUsuario ObtenerDatos()
+    {
+        return datos;
     }
 
     public float getFuerzaBase()
     {
-        return fuerzaBase * factorAyuda;
+        return datos.getFuerzaBase();
     }
 
     public void setFuerzaBase(float fuerza)
     {
-        fuerzaBase = fuerza;
+        datos.setFuerzaBase(fuerza);
     }
     
     public void actualizarFactorAyuda()
     {
-        if (aceleracionMaximaCalibrada < 2.0f)
-            factorAyuda = 1.5f;
-        else if (aceleracionMaximaCalibrada < 4.0f)
-            factorAyuda = 1.25f;
-        else if (aceleracionMaximaCalibrada < 6.0f)
-            factorAyuda = 1.1f;
-        else
-            factorAyuda = 1.0f;
-            
-        if (perfilReducido)
-            factorAyuda += 0.2f;
+        datos.actualizarFactorAyuda();
     }
 }
