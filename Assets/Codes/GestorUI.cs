@@ -15,12 +15,13 @@ public class GestorUI : MonoBehaviour
 
     private void Awake()
     {
+    
         if (Instance == null)
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
-        else
+        else if (Instance != this)
         {
             Destroy(gameObject);
         }
@@ -28,8 +29,13 @@ public class GestorUI : MonoBehaviour
 
 
     public void Inicializar(Canvas canvas)
-    {
+    {    
+        botonSeleccionado = 0;
+        botonProcesado = true;
         botones = new List<Button>(canvas.GetComponentsInChildren<Button>());
+
+        StartCoroutine(HabilitarEntradaTrasUnFrame());
+
 
         if (botones.Count == 0)
         {
@@ -39,6 +45,13 @@ public class GestorUI : MonoBehaviour
 
         ActualizarSeleccion();
     }
+
+        private IEnumerator HabilitarEntradaTrasUnFrame()
+    {
+        yield return new WaitForSeconds(5f);
+        botonProcesado = false;;
+    }
+        
 
     public void MoverMenu(int movimiento)
     {
@@ -59,7 +72,6 @@ public class GestorUI : MonoBehaviour
 
     public void SeleccionarBoton()
     {
-        Debug.Log("Botón seleccionado: " + botonSeleccionado);
         if (botones.Count == 0 || botonProcesado) return;
 
         botones[botonSeleccionado].onClick.Invoke();
@@ -92,10 +104,5 @@ public class GestorUI : MonoBehaviour
         var selectedColors = botones[botonSeleccionado].colors;
         selectedColors.normalColor = Color.yellow;
         botones[botonSeleccionado].colors = selectedColors;
-    }
-
-    internal bool TieneBotones()
-    {
-        throw new NotImplementedException();
     }
 }

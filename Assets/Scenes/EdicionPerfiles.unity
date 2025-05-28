@@ -1574,7 +1574,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.000022042646}
+  m_AnchoredPosition: {x: 0, y: 0.00006340834}
   m_SizeDelta: {x: 0, y: 240.37}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &819450972
@@ -1797,7 +1797,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 498198141}
   m_Direction: 2
   m_Value: 0
-  m_Size: 0.9999354
+  m_Size: 0.9996438
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -2185,7 +2185,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1063709803}
   - component: {fileID: 1063709804}
-  - component: {fileID: 1063709805}
   m_Layer: 0
   m_Name: GestorEditarPerfil
   m_TagString: Untagged
@@ -2234,18 +2233,6 @@ MonoBehaviour:
   botonCrearNuevo: {fileID: 1496006796}
   botonVolver: {fileID: 1229912030}
   canvas: {fileID: 403425119}
---- !u!114 &1063709805
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1063709801}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 814e17dd5fadf1b4db63ce752a42798c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &1186749860
 GameObject:
   m_ObjectHideFlags: 0

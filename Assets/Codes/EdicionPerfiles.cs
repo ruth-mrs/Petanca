@@ -50,8 +50,6 @@ public class EdicionPerfiles : MonoBehaviour
             return;
         }
         
-        // Inicializar Wiimote
-        InicializarWiimote();
         
         // Inicializar GestorUI si existe
         if (GestorUI.Instance != null)
@@ -60,9 +58,9 @@ public class EdicionPerfiles : MonoBehaviour
             GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
         }
         
-        // Configurar eventos de botones
-        ConfigurarEventosBotones();
-        
+        GestorUI.Instance.Inicializar(canvas);
+        GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
+        GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;        
         // Cargar lista de perfiles
         CargarListaPerfiles();
         
@@ -72,56 +70,11 @@ public class EdicionPerfiles : MonoBehaviour
         ActualizarEstadoBotones();
     }
     
-    void InicializarWiimote()
-    {
-        // Buscar Wiimote disponible
-        if (GestorWiimotes.Instance?.wiimote != null)
-        {
-            mote = GestorWiimotes.Instance.wiimote;
-        }
-        else
-        {
-            WiimoteManager.FindWiimotes();
-            if (WiimoteManager.Wiimotes.Count > 0)
-            {
-                mote = WiimoteManager.Wiimotes[0];
-                mote.SendDataReportMode(InputDataType.REPORT_BUTTONS_ACCEL_EXT16);
-            }
-        }
-        
-        if (mote != null)
-        {
-            // Configurar LEDs para indicar perfil actual
-            ActualizarLEDsWiimote();
-        }
-        else
-        {
-            Debug.LogWarning("No se encontró Wiimote para EdicionPerfiles");
-        }
-    }
-    
-    void ConfigurarEventosBotones()
-    {
-        if (botonEditar != null)
-            botonEditar.onClick.AddListener(EditarPerfilSeleccionado);
-            
-        if (botonEliminar != null)
-            botonEliminar.onClick.AddListener(EliminarPerfilSeleccionado);
-        
-        if (botonCrearNuevo != null)
-            botonCrearNuevo.onClick.AddListener(CrearNuevoPerfil);
-            
-        if (botonVolver != null)
-            botonVolver.onClick.AddListener(VolverAConfiguracion);
-    }
+  
+   
     
     void Update()
-    {
-        // Control con Wiimote
-        if (mote != null)
-        {
-            mote.ReadWiimoteData();
-            
+    {              
             // Control de navegación con debounce
             if (Time.time - ultimoInputTiempo > tiempoEsperaBotones)
             {
@@ -170,11 +123,72 @@ public class EdicionPerfiles : MonoBehaviour
             }
         }
     }
-    
+        // Control de navegación con Wiimote
+        Wiimote wiimote = GestorWiimotes.Instance?.wiimote;
+
+        if (wiimote != null)
+        {
+            int ret;
+            do
+            {
+                ret = wiimote.ReadWiimoteData();
+            } while (ret > 0);
+
+            // Control de navegación con D-pad para botones
+            if (wiimote.Button.d_up)
+            {
+                GestorUI.Instance.MoverMenu(-1);
+            }
+            else if (wiimote.Button.d_down)
+            {
+                GestorUI.Instance.MoverMenu(1);
+            }
+
+            // Control de scroll de perfiles con botones 1 y 2
+            if (wiimote.Button.one)
+            {
+                // Botón 1: Perfil anterior
+                CambiarPerfilSeleccionado(-1);
+            }
+            else if (wiimote.Button.two)
+            {
+                // Botón 2: Perfil siguiente
+                CambiarPerfilSeleccionado(1);
+            }
+            else if (wiimote.Button.b) // Volver al menú
+                {
+                    VolverAConfiguracion();
+                }
+            else if (wiimote.Button.minus) // Eliminar perfil
+                {
+                    EliminarPerfilSeleccionado();
+                }
+            else if (wiimote.Button.plus) // Crear nuevo perfil
+                {
+                    CrearNuevoPerfil();
+                }
+            else if (wiimote.Button.a)
+            {
+                EditarPerfilSeleccionado();
+            }
+
+            // Liberar estado de botones
+            if (!wiimote.Button.d_up && !wiimote.Button.d_down &&)
+            {
+                GestorUI.Instance.LiberarBoton();
+            }
+
+         
+        }
+ }
+        
+     
     void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
         Debug.Log("Botón ejecutado: " + botonSeleccionado);
-        // GestorUI ya maneja el onClick automáticamente
+        if (botonSeleccionado == 4){
+            VolverAConfiguracion();
+        }
     }
     
     // Cambiar perfil seleccionado con navegación circular
@@ -406,7 +420,7 @@ public class EdicionPerfiles : MonoBehaviour
         SceneManager.LoadScene(escenaConfiguracion);
     }
     
-    void OnDestroy()
+    private void OnDestroy()
     {
         // Limpiar eventos
         if (GestorUI.Instance != null)
@@ -420,4 +434,5 @@ public class EdicionPerfiles : MonoBehaviour
             WiimoteManager.Cleanup(mote);
         }
     }
+
 }

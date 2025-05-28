@@ -84,8 +84,7 @@ public class GestorPerfiles : MonoBehaviour
         perfilesGuardados.Add(nuevoPerfil);
         indicePerfilActual = perfilesGuardados.Count - 1; // Seleccionar el nuevo perfil
         
-        Debug.Log($"GestorPerfiles - Perfil añadido. Total perfiles: {perfilesGuardados.Count}");
-        
+        Debug.Log($"GestorPerfiles - Perfil añadido. Total perfiles: {perfilesGuardados.Count}");        
         GuardarPerfiles();
     }
     
@@ -101,6 +100,8 @@ public class GestorPerfiles : MonoBehaviour
         Debug.Log($"GestorPerfiles - Actualizando perfil en índice {indice}: {nombre}");
         
         DatosPerfilUsuario perfil = perfilesGuardados[indice];
+
+        
         perfil.nombreUsuario = nombre;
         perfil.esZurdo = esZurdo;
         perfil.perfilReducido = perfilReducido;
@@ -306,7 +307,6 @@ public class GestorPerfiles : MonoBehaviour
         return nombres;
     }
     
-    // Clase auxiliar para serialización
     [System.Serializable]
     private class PerfilesData
     {

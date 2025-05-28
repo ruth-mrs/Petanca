@@ -68,6 +68,17 @@ public class PerfilUsuario : MonoBehaviour
         return datos;
     }
 
+    // NUEVO: Constructor completo para la creación de perfiles
+    public PerfilUsuario(string nombre, bool zurdo, bool reducido, float aceleracion)
+    {
+        nombreUsuario = nombre;
+        esZurdo = zurdo;
+        perfilReducido = reducido;
+        aceleracionMaximaCalibrada = aceleracion;
+        fechaCreacion = DateTime.Now.Ticks;
+        actualizarFactorAyuda();
+    }
+
     public float getFuerzaBase()
     {
         return datos.getFuerzaBase();

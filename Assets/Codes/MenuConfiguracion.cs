@@ -80,10 +80,6 @@ public class MenuConfiguracion : MonoBehaviour
                 SubirVolumen();
             }
 
-            if (!wiimote.Button.d_up && !wiimote.Button.d_down)
-            {
-                GestorUI.Instance.LiberarBoton();
-            }
 
             if (!wiimote.Button.one && !wiimote.Button.two)
             {
@@ -93,6 +89,10 @@ public class MenuConfiguracion : MonoBehaviour
             if (wiimote.Button.a)
             {
                 GestorUI.Instance.SeleccionarBoton();
+            }
+             if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.one && !wiimote.Button.two && !wiimote.Button.a)   
+            {
+                GestorUI.Instance.LiberarBoton();
             }
         }
     }
@@ -257,15 +257,14 @@ public class MenuConfiguracion : MonoBehaviour
         Debug.Log("Volviendo al MenuPrincipal");
         
         // Cargar escena del menú principal
-        SceneManager.LoadScene(escenaMenuPrincipal);
+        SceneManager.LoadScene("MenuPrincipal");
     }
-    
-    void OnDestroy()
+
+    private void OnDestroy()
     {
-        // Limpiar eventos
-        if (GestorUI.Instance != null)
-        {
-            GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
-        }
+      if (GestorUI.Instance != null)
+      {
+        GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
+      }
     }
 }

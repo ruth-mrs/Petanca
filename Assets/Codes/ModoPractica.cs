@@ -33,7 +33,6 @@ public class ModoPractica : MonoBehaviour
     private PerfilUsuario perfilJugador;
     private DatosPerfilUsuario datosPerfilJugador;
 
-    // Referencia a la bola más cercana actual
     private GameObject bolaMasCercanaActual;
 
     void Start()
@@ -85,6 +84,7 @@ public class ModoPractica : MonoBehaviour
         if (GestorUI.Instance != null)
         {
             GestorUI.Instance.Inicializar(canvas);
+            GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
             GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
             canvas.enabled = false;
         }
@@ -171,14 +171,9 @@ public class ModoPractica : MonoBehaviour
         ActualizarUI();
     }
 
-    /// <summary>
-    /// Llama a este método cada vez que determines cuál es la bola más cercana.
-    /// </summary>
-    /// <param name="nuevaBola">GameObject de la nueva bola más cercana</param>
-    /// <param name="nuevaDistancia">Distancia de la nueva bola más cercana</param>
+   
     public void ActualizarBolaMasCercana(GameObject nuevaBola, double nuevaDistancia)
     {
-        // Si hay una bola anterior resaltada y es diferente a la nueva, restaurar su material
         if (bolaMasCercanaActual != null && bolaMasCercanaActual != nuevaBola)
         {
             var rendererAnterior = bolaMasCercanaActual.GetComponent<Renderer>();
@@ -188,7 +183,6 @@ public class ModoPractica : MonoBehaviour
             }
         }
 
-        // Resalta la nueva bola más cercana
         if (nuevaBola != null)
         {
             var rendererNuevo = nuevaBola.GetComponent<Renderer>();
@@ -319,7 +313,7 @@ public class ModoPractica : MonoBehaviour
         }
     }
 
-    void OnDestroy()
+    private void OnDestroy()
     {
         // Limpiar referencia del perfil seleccionado
         SelectorPerfiles.perfilJugador1 = null;

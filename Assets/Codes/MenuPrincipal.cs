@@ -30,9 +30,22 @@ public class MenuPrincipal : MonoBehaviour
         }
         
         Application.targetFrameRate = 30;
-    }
 
-    void ActivarSistemaFallback()
+        if(GestorUI.Instance == null)
+        {
+            GameObject go = new GameObject("GestorUI");
+            go.AddComponent<GestorUI>();
+
+            GestorUI.Instance.Inicializar(canvas);
+            GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+        }else{
+            GestorUI.Instance.Inicializar(canvas);
+            GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+        }
+
+    }
+    
+     void ActivarSistemaFallback()
     {
         usandoFallback = true;
         
@@ -48,7 +61,8 @@ public class MenuPrincipal : MonoBehaviour
         {
             ResaltarBoton(0);
         }
-    }
+     }
+
 
     void Update()
     {
@@ -101,6 +115,7 @@ public class MenuPrincipal : MonoBehaviour
             {
                 GestorUI.Instance.LiberarBoton();
             }
+
         }
     }
     
@@ -142,6 +157,12 @@ public class MenuPrincipal : MonoBehaviour
             // Si el botón no tiene onClick, usar nuestro sistema
             EjecutarOpcionSeleccionada(indiceSeleccionado);
         }
+            }
+
+            if (!wiimote.Button.d_up && !wiimote.Button.d_down && !wiimote.Button.a)
+            {
+                GestorUI.Instance.LiberarBoton();
+            }
     }
     
     void ResaltarBoton(int indice)
@@ -164,7 +185,6 @@ public class MenuPrincipal : MonoBehaviour
 
     void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
-        Debug.Log("Botón ejecutado: " + botonSeleccionado);
 
         switch (botonSeleccionado)
         {
@@ -232,11 +252,15 @@ public class MenuPrincipal : MonoBehaviour
         #endif
     }
 
-    void OnDestroy()
+
+
+    private void OnDestroy()
+    {   
+    if (GestorUI.Instance != null)
     {
-        if (GestorUI.Instance != null)
-        {
-            GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
-        }
+        GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
     }
+    }
+
+
 }

@@ -344,6 +344,21 @@ public class CreacionPerfil : MonoBehaviour
     }
 
     public void MostrarPanelNombre()
+{
+    // CORRECCIÓN: Asegurar que el panel de calibración esté completamente oculto
+    if (panelCalibracion != null)
+        panelCalibracion.SetActive(false);
+    
+    if (panelProcesoCalibracion != null)
+        panelProcesoCalibracion.SetActive(false);
+    
+    if (panelPrincipalCalibracion != null)
+        panelPrincipalCalibracion.SetActive(false);
+
+    MostrarSoloPanelActual(panelNombrePerfil);
+
+    // En modo edición, mostrar nombre existente
+    if (modoEdicion && perfilEdicion != null && campoNombre != null)
     {
         // Asegurar que el panel de calibración esté completamente oculto
         if (panelCalibracion != null)
@@ -368,6 +383,7 @@ public class CreacionPerfil : MonoBehaviour
             campoNombre.text = "";
         }
     }
+}
 
     private System.Collections.IEnumerator ActualizarBotonesConRetraso(System.Action accionActualizar)
     {
@@ -483,41 +499,44 @@ public class CreacionPerfil : MonoBehaviour
         IniciarCalibracion();
     }
 
-    private IEnumerator ProcesoCalibracion()
-    {
-        Debug.Log("Iniciando proceso de calibración");
+private IEnumerator ProcesoCalibracion()
+{
+    Debug.Log("Iniciando proceso de calibración");
 
-        if (textoEstadoCalibracion != null)
+    if (textoEstadoCalibracion != null)
+    {
+        if (mote != null)
         {
             textoEstadoCalibracion.text = "Prepárate para la calibración...\n\n" +
                 "Cuando estés listo, mantén pulsado el botón B y realiza\n" +
                 "un movimiento de lanzamiento. Suelta el botón al terminar.";
         }
-
-        if (indicadorCargaCircular != null)
+        else
         {
-            indicadorCargaCircular.gameObject.SetActive(true);
+            textoEstadoCalibracion.text = "Calibración con mouse/teclado...\n\n" +
+                "Mantén pulsado el botón izquierdo del mouse y muévelo\n" +
+                "para simular un movimiento de lanzamiento. Suelta para terminar.";
         }
+    }
 
         // Esperar a que el usuario pulse el botón B del Wiimote
         bool botonPulsado = false;
 
-        while (!botonPulsado)
+    while (!botonPulsado)
+    {
+        if (mote != null)
         {
-            if (mote != null)
+            mote.ReadWiimoteData();
+            if (mote.Button.b)
             {
-                mote.ReadWiimoteData();
-                if (mote.Button.b)
-                {
-                    botonPulsado = true;
-                    calibracionEnCurso = true;
-                    aceleracionMaximaCaptada = 0f;
+                botonPulsado = true;
+                calibracionEnCurso = true;
+                aceleracionMaximaCaptada = 0f;
 
-                    if (textoEstadoCalibracion != null)
-                    {
-                        textoEstadoCalibracion.text = "Calibración en proceso...\n" +
-                            "Mantén el botón hasta completar el movimiento";
-                    }
+                if (textoEstadoCalibracion != null)
+                {
+                    textoEstadoCalibracion.text = "Calibración en proceso...\n" +
+                        "Mantén el botón hasta completar el movimiento";
                 }
             }
 
@@ -588,6 +607,7 @@ public class CreacionPerfil : MonoBehaviour
             campoNombre.text = GestorPerfiles.Instancia.GenerarNombreAleatorio();
         }
     }
+    
 
     public void GuardarPerfil()
     {
@@ -615,11 +635,11 @@ public class CreacionPerfil : MonoBehaviour
             return;
         }
 
-        // Verificar que tenemos datos de calibración válidos
         if (aceleracionMaximaCaptada <= 0)
         {
             Debug.LogWarning("No se ha completado la calibración correctamente");
             StartCoroutine(MostrarMensajeError("Error: Calibración incompleta. Vuelve a calibrar."));
+
             return;
         }
 
