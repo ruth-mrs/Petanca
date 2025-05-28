@@ -268,7 +268,7 @@ public class MenuAccesibilidad : MonoBehaviour
         MostrarFiltroActual();
         
         // Mostrar confirmación
-        Debug.Log($"Filtro aplicado: {ObtenerDescripcionFiltro(filtroSeleccionado)}");
+        Debug.Log($"{ObtenerDescripcionFiltro(filtroSeleccionado)}");
     }
     
     private void MostrarFiltroActual()
