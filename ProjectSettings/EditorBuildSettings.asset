@@ -6,8 +6,29 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/MenuPrincipal.unity
+    guid: 30d45c36a7bc4454480fffec631ed954
+  - enabled: 1
+    path: Assets/Scenes/PetancaSolitario.unity
+    guid: feaa2b6359c30a046b95b80ad677c792
+  - enabled: 1
+    path: Assets/Scenes/PetancaMultijugador.unity
+    guid: a6055eb70ce053d4f99a054ccb8b2d10
+  - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/MenuConfiguracion.unity
+    guid: 8d59215df1613ac44bfd7fac552cf397
+  - enabled: 1
+    path: Assets/Scenes/MenuAccesibilidad.unity
+    guid: 59ab5ae1db5f2df4ba42fa7835229f8e
+  - enabled: 1
+    path: Assets/Scenes/EdicionPerfiles.unity
+    guid: f9f1a70040343a14082833fe3d59ed2d
+  - enabled: 1
+    path: Assets/Scenes/CrearPerfil.unity
+    guid: e50b9e257c9f97641a65e27b00f61001
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

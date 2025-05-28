@@ -44,126 +44,185 @@ public class CameraController : MonoBehaviour
         }
         else
         {
-            Debug.LogError("No se encontró ningún Wiimote. Por favor conecta un Wiimote e intenta nuevamente.");
+            Debug.Log("No se encontró ningún Wiimote. Usando controles de mouse/teclado: WASD para movimiento, mouse para girar, Space/Ctrl para subir/bajar.");
         }
     }
 
     void Update()
     {
-        // Verificar que el mando esté conectado
-        if (mote == null)
+        if (mote != null)
         {
-            Debug.LogWarning("Wiimote no conectado o perdido. Intentando reconectar...");
-            WiimoteManager.FindWiimotes();
-            if (WiimoteManager.Wiimotes.Count > 0)
-            {
-                mote = WiimoteManager.Wiimotes[0];
-                mote.SendDataReportMode(InputDataType.REPORT_BUTTONS_ACCEL_EXT16);
-            }
-            return;
-        }
-        
-        // Leer datos del Wiimote cada frame
-        mote.ReadWiimoteData();
-        
-        if (!isRecordingAccel)
-        {
-            // --------------- MANEJO DE MOVIMIENTO ---------------
-            moveDirection = Vector3.zero;
+            // Wiimote controls (existing code)
+            mote.ReadWiimoteData();
             
-            // Movimiento con cruceta
-            if (mote.Button.d_up)
+            if (!isRecordingAccel)
             {
-                moveDirection += transform.forward;
-                Debug.Log("▲ Moviendo ADELANTE");
-            }
-            
-            if (mote.Button.d_down)
-            {
-                moveDirection -= transform.forward;
-                Debug.Log("▼ Moviendo ATRÁS");
-            }
-            
-            if (mote.Button.d_left)
-            {
-                moveDirection -= transform.right;
-                Debug.Log("◄ Moviendo IZQUIERDA");
-            }
-            
-            if (mote.Button.d_right)
-            {
-                moveDirection += transform.right;
-                Debug.Log("► Moviendo DERECHA");
-            }
-            
-            // Movimiento vertical con + y -
-            if (mote.Button.plus)
-            {
-                moveDirection += Vector3.up;
-                Debug.Log("+ Moviendo ARRIBA");
-            }
-            
-            if (mote.Button.minus)
-            {
-                moveDirection += Vector3.down;
-                Debug.Log("- Moviendo ABAJO");
-            }
-            
-            // --------------- MANEJO DE ROTACIÓN ---------------
-            // Usar botones 1 y 2 para rotar
-            if (mote.Button.one)
-            {
-                yRotation -= wiimoteRotationSpeed * Time.deltaTime; // Girar izquierda
-                Debug.Log("1 Girando IZQUIERDA");
-            }
-            
-            if (mote.Button.two)
-            {
-                yRotation += wiimoteRotationSpeed * Time.deltaTime; // Girar derecha
-                Debug.Log("2 Girando DERECHA");
-            }
-            
-            // Mantén los límites de rotación
-            if (yRotation > 360) yRotation -= 360;
-            if (yRotation < 0) yRotation += 360;
-            
-            // Aplicar el movimiento si hay dirección
-            // Aplicar el movimiento si hay dirección
-            if (moveDirection.magnitude > 0.1f)
-            {
-                // Normalizar solo si la magnitud es mayor que 1
-                if (moveDirection.magnitude > 1f)
+                moveDirection = Vector3.zero;
+                
+                // Movimiento con cruceta
+                if (mote.Button.d_up)
                 {
-                    moveDirection.Normalize();
+                    moveDirection += transform.forward;
+                    Debug.Log("▲ Moviendo ADELANTE");
                 }
                 
-                // Aumentar SIGNIFICATIVAMENTE la velocidad para ver el efecto
-                float actualSpeed = wiimoteMovementSpeed * 3f; // Triplicamos la velocidad
+                if (mote.Button.d_down)
+                {
+                    moveDirection -= transform.forward;
+                    Debug.Log("▼ Moviendo ATRÁS");
+                }
                 
-                // Usar transform.Translate en lugar de modificar directamente la posición
-                transform.Translate(moveDirection * actualSpeed * Time.deltaTime);
+                if (mote.Button.d_left)
+                {
+                    moveDirection -= transform.right;
+                    Debug.Log("◄ Moviendo IZQUIERDA");
+                }
                 
-                // Imprimir posición actual para verificar
-                Debug.Log("POSICIÓN ACTUAL: " + transform.position);
+                if (mote.Button.d_right)
+                {
+                    moveDirection += transform.right;
+                    Debug.Log("► Moviendo DERECHA");
+                }
+                
+                // Movimiento vertical con + y -
+                if (mote.Button.plus)
+                {
+                    moveDirection += Vector3.up;
+                    Debug.Log("+ Moviendo ARRIBA");
+                }
+                
+                if (mote.Button.minus)
+                {
+                    moveDirection += Vector3.down;
+                    Debug.Log("- Moviendo ABAJO");
+                }
+                
+                // --------------- MANEJO DE ROTACIÓN ---------------
+                // Usar botones 1 y 2 para rotar
+                if (mote.Button.one)
+                {
+                    yRotation -= wiimoteRotationSpeed * Time.deltaTime; // Girar izquierda
+                    Debug.Log("1 Girando IZQUIERDA");
+                }
+                
+                if (mote.Button.two)
+                {
+                    yRotation += wiimoteRotationSpeed * Time.deltaTime; // Girar derecha
+                    Debug.Log("2 Girando DERECHA");
+                }
+                
+                // Mantén los límites de rotación
+                if (yRotation > 360) yRotation -= 360;
+                if (yRotation < 0) yRotation += 360;
+                
+                // Aplicar el movimiento si hay dirección
+                // Aplicar el movimiento si hay dirección
+                if (moveDirection.magnitude > 0.1f)
+                {
+                    // Normalizar solo si la magnitud es mayor que 1
+                    if (moveDirection.magnitude > 1f)
+                    {
+                        moveDirection.Normalize();
+                    }
+                    
+                    // Aumentar SIGNIFICATIVAMENTE la velocidad para ver el efecto
+                    float actualSpeed = wiimoteMovementSpeed * 3f; // Triplicamos la velocidad
+                    
+                    // Usar transform.Translate en lugar de modificar directamente la posición
+                    transform.Translate(moveDirection * actualSpeed * Time.deltaTime);
+                    
+                    // Imprimir posición actual para verificar
+                    Debug.Log("POSICIÓN ACTUAL: " + transform.position);
+                }
+                
+                // Aplicar rotación
+                transform.rotation = Quaternion.Euler(xRotation, yRotation, 0f);
+                
+                // Botón Home para reiniciar posición
+                if (mote.Button.home)
+                {
+                    transform.position = new Vector3(0, 1, 0);
+                    yRotation = 0;
+                    xRotation = 0;
+                    Debug.Log("⌂ Posición reiniciada");
+                }
+                
+                // Iniciar grabación de aceleración con botón A
+                if (mote.Button.a)
+                {
+                    Debug.Log("Botón A presionado - Iniciando grabación de aceleración...");
+                    StartCoroutine(RecordAccelerationData());
+                }
             }
-            
-            // Aplicar rotación
-            transform.rotation = Quaternion.Euler(xRotation, yRotation, 0f);
-            
-            // Botón Home para reiniciar posición
-            if (mote.Button.home)
+        }
+        else
+        {
+            // Mouse/Keyboard fallback controls
+            if (!isRecordingAccel)
             {
-                transform.position = new Vector3(0, 1, 0);
-                yRotation = 0;
-                xRotation = 0;
-                Debug.Log("⌂ Posición reiniciada");
-            }
-            
-            // Iniciar grabación de aceleración con botón A
-            if (mote.Button.a)
-            {
-                Debug.Log("Botón A presionado - Iniciando grabación de aceleración...");
-                StartCoroutine(RecordAccelerationData());
+                // WASD movement
+                moveDirection = Vector3.zero;
+                
+                if (Input.GetKey(KeyCode.W))
+                {
+                    moveDirection += transform.forward;
+                }
+                if (Input.GetKey(KeyCode.S))
+                {
+                    moveDirection -= transform.forward;
+                }
+                if (Input.GetKey(KeyCode.A))
+                {
+                    moveDirection -= transform.right;
+                }
+                if (Input.GetKey(KeyCode.D))
+                {
+                    moveDirection += transform.right;
+                }
+                if (Input.GetKey(KeyCode.Space))
+                {
+                    moveDirection += Vector3.up;
+                }
+                if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+                {
+                    moveDirection += Vector3.down;
+                }
+                
+                // Mouse look
+                float mouseX = Input.GetAxis("Mouse X") * wiimoteRotationSpeed * Time.deltaTime;
+                float mouseY = Input.GetAxis("Mouse Y") * wiimoteRotationSpeed * Time.deltaTime;
+                
+                yRotation += mouseX;
+                xRotation -= mouseY;
+                xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+                
+                // Apply movement
+                if (moveDirection.magnitude > 0.1f)
+                {
+                    if (moveDirection.magnitude > 1f)
+                    {
+                        moveDirection.Normalize();
+                    }
+                    
+                    float actualSpeed = wiimoteMovementSpeed * 3f;
+                    transform.Translate(moveDirection * actualSpeed * Time.deltaTime);
+                }
+                
+                transform.rotation = Quaternion.Euler(xRotation, yRotation, 0f);
+                
+                // Reset position with R key
+                if (Input.GetKeyDown(KeyCode.R))
+                {
+                    transform.position = new Vector3(0, 1, 0);
+                    yRotation = 0;
+                    xRotation = 0;
+                }
+                
+                // Record acceleration with left click (simulate)
+                if (Input.GetMouseButtonDown(0))
+                {
+                    StartCoroutine(RecordAccelerationData());
+                }
             }
         }
     }
