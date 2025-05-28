@@ -87,6 +87,11 @@ public class GestorUI : MonoBehaviour
         botonProcesado = false;
     }
 
+    public int ObtenerCantidadBotones()
+    {
+        return botones != null ? botones.Count : 0;
+    }
+
     private void ActualizarSeleccion()
     {
         foreach (var boton in botones)

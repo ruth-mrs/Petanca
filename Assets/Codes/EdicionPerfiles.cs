@@ -21,6 +21,8 @@ public class EdicionPerfiles : MonoBehaviour
     public TextMeshProUGUI textoTipoPerfil;
     public TextMeshProUGUI textoAceleracion;
     public TextMeshProUGUI textoFactorAyuda;
+    public TextMeshProUGUI textoFechaCreacion;
+    public TextMeshProUGUI textoIndiceActual; // Para mostrar "Perfil X de Y"
     
     [Header("Botones de acción")]
     public Button botonEditar;
@@ -31,11 +33,13 @@ public class EdicionPerfiles : MonoBehaviour
     [Header("UI")]
     public Canvas canvas;
     
-    // Perfil seleccionado actualmente
-    private PerfilUsuario perfilSeleccionado;
-    private int indicePerfilSeleccionado = 0;
+    [Header("Navegación Wiimote")]
+    public float tiempoEsperaBotones = 0.3f;
     
-    // GestorUI.Instance
+    // Control de navegación
+    private int indicePerfilSeleccionado = 0;
+    private float ultimoInputTiempo = 0f;
+    private Wiimote mote;
     
     private void Start()
     {
@@ -46,40 +50,79 @@ public class EdicionPerfiles : MonoBehaviour
             return;
         }
         
+        
+        // Inicializar GestorUI si existe
+        if (GestorUI.Instance != null)
+        {
+            GestorUI.Instance.Inicializar(canvas);
+            GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
+        }
+        
         GestorUI.Instance.Inicializar(canvas);
         GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
-
-        GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;
-        
+        GestorUI.Instance.OnBotonSeleccionado += EjecutarOpcionSeleccionada;        
         // Cargar lista de perfiles
         CargarListaPerfiles();
         
-        // Configurar eventos de botones
-        if (botonEditar != null)
-            botonEditar.onClick.AddListener(EditarPerfilSeleccionado);
-            
-        if (botonEliminar != null)
-            botonEliminar.onClick.AddListener(EliminarPerfilSeleccionado);
-        
-        if (botonCrearNuevo != null)
-            botonCrearNuevo.onClick.AddListener(CrearNuevoPerfil);
-            
-        if (botonVolver != null)
-            botonVolver.onClick.AddListener(VolverAConfiguracion);
-            
-        // Inicialmente, deshabilitar botones hasta que se seleccione un perfil
+        // Seleccionar el perfil actual del gestor
+        indicePerfilSeleccionado = GestorPerfiles.Instancia.indicePerfilActual;
+        ActualizarVisualizacionPerfil();
         ActualizarEstadoBotones();
-        
-        // Seleccionar el primer perfil por defecto
-        if (GestorPerfiles.Instancia.perfilesUsuarios.Count > 0)
-        {
-            indicePerfilSeleccionado = 0;
-            SeleccionarPerfilPorIndice(indicePerfilSeleccionado);
-        }
     }
     
+  
+   
+    
     void Update()
-    {
+    {              
+            // Control de navegación con debounce
+            if (Time.time - ultimoInputTiempo > tiempoEsperaBotones)
+            {
+                if (mote.Button.one) // Perfil anterior
+                {
+                    CambiarPerfilSeleccionado(-1);
+                    ultimoInputTiempo = Time.time;
+                }
+                else if (mote.Button.two) // Perfil siguiente
+                {
+                    CambiarPerfilSeleccionado(1);
+                    ultimoInputTiempo = Time.time;
+                }
+                else if (mote.Button.a) // Editar perfil actual
+                {
+                    EditarPerfilSeleccionado();
+                    ultimoInputTiempo = Time.time;
+                }
+                else if (mote.Button.b) // Volver al menú
+                {
+                    VolverAConfiguracion();
+                    ultimoInputTiempo = Time.time;
+                }
+                else if (mote.Button.minus) // Eliminar perfil
+                {
+                    EliminarPerfilSeleccionado();
+                    ultimoInputTiempo = Time.time;
+                }
+                else if (mote.Button.plus) // Crear nuevo perfil
+                {
+                    CrearNuevoPerfil();
+                    ultimoInputTiempo = Time.time;
+                }
+            }
+            
+            // Control de menú con D-pad (si existe GestorUI)
+            if (GestorUI.Instance != null)
+            {
+                if (mote.Button.d_up)
+                    GestorUI.Instance.MoverMenu(-1);
+                else if (mote.Button.d_down)
+                    GestorUI.Instance.MoverMenu(1);
+                    
+                if (!mote.Button.d_up && !mote.Button.d_down)
+                    GestorUI.Instance.LiberarBoton();
+            }
+        }
+    }
         // Control de navegación con Wiimote
         Wiimote wiimote = GestorWiimotes.Instance?.wiimote;
 
@@ -112,23 +155,34 @@ public class EdicionPerfiles : MonoBehaviour
                 // Botón 2: Perfil siguiente
                 CambiarPerfilSeleccionado(1);
             }
+            else if (wiimote.Button.b) // Volver al menú
+                {
+                    VolverAConfiguracion();
+                }
+            else if (wiimote.Button.minus) // Eliminar perfil
+                {
+                    EliminarPerfilSeleccionado();
+                }
+            else if (wiimote.Button.plus) // Crear nuevo perfil
+                {
+                    CrearNuevoPerfil();
+                }
+            else if (wiimote.Button.a)
+            {
+                EditarPerfilSeleccionado();
+            }
 
             // Liberar estado de botones
-            if (!wiimote.Button.d_up && !wiimote.Button.d_down)
+            if (!wiimote.Button.d_up && !wiimote.Button.d_down &&)
             {
                 GestorUI.Instance.LiberarBoton();
             }
 
-            // Seleccionar con botón A
-            if (wiimote.Button.a)
-            {
-                GestorUI.Instance.SeleccionarBoton();
-            }
+         
         }
  }
         
-    
-    
+     
     void EjecutarOpcionSeleccionada(int botonSeleccionado)
     {
         Debug.Log("Botón ejecutado: " + botonSeleccionado);
@@ -137,107 +191,38 @@ public class EdicionPerfiles : MonoBehaviour
         }
     }
     
-    // Nuevo método para cambiar perfil seleccionado con botones 1 y 2
+    // Cambiar perfil seleccionado con navegación circular
     private void CambiarPerfilSeleccionado(int direccion)
     {
-        if (GestorPerfiles.Instancia.perfilesUsuarios.Count == 0) return;
+        int cantidadPerfiles = GestorPerfiles.Instancia.CantidadPerfiles();
+        if (cantidadPerfiles == 0) return;
         
-        // Calcular nuevo índice
+        // Calcular nuevo índice con wrap-around
         indicePerfilSeleccionado += direccion;
         
-        // Hacer wrap-around (circular)
         if (indicePerfilSeleccionado < 0)
-            indicePerfilSeleccionado = GestorPerfiles.Instancia.perfilesUsuarios.Count - 1;
-        else if (indicePerfilSeleccionado >= GestorPerfiles.Instancia.perfilesUsuarios.Count)
+            indicePerfilSeleccionado = cantidadPerfiles - 1;
+        else if (indicePerfilSeleccionado >= cantidadPerfiles)
             indicePerfilSeleccionado = 0;
         
-        // Seleccionar el nuevo perfil
-        SeleccionarPerfilPorIndice(indicePerfilSeleccionado);
+        // Actualizar perfil actual en el gestor
+        GestorPerfiles.Instancia.CambiarPerfilActual(indicePerfilSeleccionado);
+        
+        // Actualizar visualización
+        ActualizarVisualizacionPerfil();
+        ActualizarVisualLista();
+        ActualizarLEDsWiimote();
+        
+        Debug.Log($"Cambiado a perfil {indicePerfilSeleccionado + 1} de {cantidadPerfiles}");
     }
     
-    // Método para seleccionar perfil por índice
-    private void SeleccionarPerfilPorIndice(int indice)
+    // Actualizar la visualización del perfil actual
+    private void ActualizarVisualizacionPerfil()
     {
-        if (indice >= 0 && indice < GestorPerfiles.Instancia.perfilesUsuarios.Count)
-        {
-            PerfilUsuario perfil = GestorPerfiles.Instancia.perfilesUsuarios[indice];
-            SeleccionarPerfil(perfil);
-        }
-    }
-    
-    // Cargar la lista de perfiles disponibles (SOLO NOMBRES)
-    private void CargarListaPerfiles()
-    {
-        // Limpiar contenedor
-        if (contenedorPerfiles != null)
-        {
-            foreach (Transform child in contenedorPerfiles.transform)
-            {
-                Destroy(child.gameObject);
-            }
-            
-            // Crear un elemento por cada perfil (SOLO NOMBRE)
-            foreach (PerfilUsuario perfil in GestorPerfiles.Instancia.perfilesUsuarios)
-            {
-                GameObject item = Instantiate(prefabItemPerfil, contenedorPerfiles.transform);
-                
-                // Configurar SOLO el nombre
-                TextMeshProUGUI texto = item.GetComponentInChildren<TextMeshProUGUI>();
-                if (texto != null)
-                {
-                    texto.text = perfil.nombreUsuario;
-                }
-                
-                // Configurar botón principal para seleccionar
-                Button boton = item.GetComponent<Button>();
-                if (boton != null)
-                {
-                    PerfilUsuario perfilActual = perfil; // Captura para evitar problemas de closure
-                    boton.onClick.AddListener(() => SeleccionarPerfil(perfilActual));
-                    
-                    // Marcar perfil activo visualmente
-                    if (perfil == GestorPerfiles.Instancia.perfilActual)
-                    {
-                        ColorBlock colores = boton.colors;
-                        colores.normalColor = new Color(0.7f, 0.9f, 1f); // Azul claro
-                        boton.colors = colores;
-                    }
-                }
-            }
-        }
+        DatosPerfilUsuario perfil = GestorPerfiles.Instancia.ObtenerPerfilActual();
+        if (perfil == null) return;
         
-        // Seleccionar el perfil actual por defecto
-        if (GestorPerfiles.Instancia.perfilActual != null)
-        {
-            int indice = GestorPerfiles.Instancia.perfilesUsuarios.IndexOf(GestorPerfiles.Instancia.perfilActual);
-            if (indice >= 0)
-            {
-                indicePerfilSeleccionado = indice;
-                SeleccionarPerfil(GestorPerfiles.Instancia.perfilActual);
-            }
-        }
-    }
-    
-    // Crear nuevo perfil
-    public void CrearNuevoPerfil()
-    {
-        // Resetear indicadores de edición
-        PlayerPrefs.SetInt("ModoEdicion", 0);
-        PlayerPrefs.SetInt("IndicePerfilEditar", -1);
-        PlayerPrefs.Save();
-        
-        // Ir a la escena de creación
-        SceneManager.LoadScene(escenaCreacionPerfil);
-    }
-    
-    public void SeleccionarPerfil(PerfilUsuario perfil)
-    {
-        perfilSeleccionado = perfil;
-        
-        // Actualizar índice seleccionado
-        indicePerfilSeleccionado = GestorPerfiles.Instancia.perfilesUsuarios.IndexOf(perfil);
-        
-        // Actualizar SOLO el panel de detalles (derecha)
+        // Actualizar textos de detalle
         if (textoNombre != null)
             textoNombre.text = perfil.nombreUsuario;
             
@@ -248,25 +233,78 @@ public class EdicionPerfiles : MonoBehaviour
             textoTipoPerfil.text = perfil.perfilReducido ? "Reducido" : "Amplio";
             
         if (textoAceleracion != null)
-            textoAceleracion.text = perfil.aceleracionMaximaCalibrada.ToString("F2");
+            textoAceleracion.text = perfil.aceleracionMaximaCalibrada.ToString("F2") + " m/s²";
             
         if (textoFactorAyuda != null)
-            textoFactorAyuda.text = perfil.factorAyuda.ToString("F2");
+            textoFactorAyuda.text = perfil.factorAyuda.ToString("F2") + "x";
+            
+        if (textoFechaCreacion != null)
+        {
+            System.DateTime fecha = new System.DateTime(perfil.fechaCreacion);
+            textoFechaCreacion.text = fecha.ToString("dd/MM/yyyy HH:mm");
+        }
         
-        // Habilitar botones del panel de detalles
-        ActualizarEstadoBotones();
-        
-        // Actualizar perfil actual en el gestor
-        GestorPerfiles.Instancia.perfilActual = perfil;
-        GestorPerfiles.Instancia.GuardarPerfiles();
-        
-        // Actualizar visual de la lista (solo colores, no recrear)
-        ActualizarVisualLista();
-        
-        Debug.Log($"Perfil seleccionado: {perfil.nombreUsuario} (Índice: {indicePerfilSeleccionado})");
+        if (textoIndiceActual != null)
+        {
+            int total = GestorPerfiles.Instancia.CantidadPerfiles();
+            textoIndiceActual.text = $"Perfil {indicePerfilSeleccionado + 1} de {total}";
+        }
     }
     
-    // Nuevo método para actualizar solo los colores sin recrear toda la lista
+    // Cargar la lista de perfiles (solo nombres)
+    private void CargarListaPerfiles()
+    {
+        if (contenedorPerfiles == null) return;
+        
+        // Limpiar contenedor
+        foreach (Transform child in contenedorPerfiles.transform)
+        {
+            Destroy(child.gameObject);
+        }
+        
+        // Crear elementos de la lista
+        List<DatosPerfilUsuario> perfiles = GestorPerfiles.Instancia.ObtenerPerfiles();
+        
+        for (int i = 0; i < perfiles.Count; i++)
+        {
+            DatosPerfilUsuario perfil = perfiles[i];
+            GameObject item = Instantiate(prefabItemPerfil, contenedorPerfiles.transform);
+            
+            // Configurar texto del nombre
+            TextMeshProUGUI texto = item.GetComponentInChildren<TextMeshProUGUI>();
+            if (texto != null)
+            {
+                texto.text = perfil.nombreUsuario;
+            }
+            
+            // Configurar botón para seleccionar
+            Button boton = item.GetComponent<Button>();
+            if (boton != null)
+            {
+                int indiceCapturado = i; // Captura para evitar problemas de closure
+                boton.onClick.AddListener(() => SeleccionarPerfilPorIndice(indiceCapturado));
+            }
+        }
+        
+        ActualizarVisualLista();
+    }
+    
+    // Seleccionar perfil por índice
+    private void SeleccionarPerfilPorIndice(int indice)
+    {
+        if (indice < 0 || indice >= GestorPerfiles.Instancia.CantidadPerfiles())
+            return;
+            
+        indicePerfilSeleccionado = indice;
+        GestorPerfiles.Instancia.CambiarPerfilActual(indice);
+        
+        ActualizarVisualizacionPerfil();
+        ActualizarVisualLista();
+        ActualizarLEDsWiimote();
+        ActualizarEstadoBotones();
+    }
+    
+    // Actualizar colores de la lista sin recrearla
     private void ActualizarVisualLista()
     {
         if (contenedorPerfiles == null) return;
@@ -275,12 +313,11 @@ public class EdicionPerfiles : MonoBehaviour
         foreach (Transform child in contenedorPerfiles.transform)
         {
             Button boton = child.GetComponent<Button>();
-            if (boton != null && index < GestorPerfiles.Instancia.perfilesUsuarios.Count)
+            if (boton != null)
             {
-                PerfilUsuario perfil = GestorPerfiles.Instancia.perfilesUsuarios[index];
                 ColorBlock colores = boton.colors;
                 
-                if (perfil == perfilSeleccionado)
+                if (index == indicePerfilSeleccionado)
                     colores.normalColor = new Color(0.7f, 0.9f, 1f); // Seleccionado (azul claro)
                 else
                     colores.normalColor = Color.white; // Normal
@@ -291,60 +328,90 @@ public class EdicionPerfiles : MonoBehaviour
         }
     }
     
+    // Actualizar LEDs del Wiimote para indicar perfil actual
+    private void ActualizarLEDsWiimote()
+    {
+        if (mote == null) return;
+        
+        // Usar los 4 LEDs para mostrar el índice del perfil (binario)
+        int indice = indicePerfilSeleccionado % 16; // Máximo 16 perfiles representables
+        
+        mote.SendPlayerLED(
+            (indice & 1) != 0,      // LED 1
+            (indice & 2) != 0,      // LED 2
+            (indice & 4) != 0,      // LED 3
+            (indice & 8) != 0       // LED 4
+        );
+    }
+    
     private void ActualizarEstadoBotones()
     {
-        bool perfilSeleccionado = this.perfilSeleccionado != null;
-        bool permiteEliminar = perfilSeleccionado && GestorPerfiles.Instancia.perfilesUsuarios.Count > 1;
+        bool hayPerfil = GestorPerfiles.Instancia.CantidadPerfiles() > 0;
+        bool permiteEliminar = hayPerfil && GestorPerfiles.Instancia.CantidadPerfiles() > 1;
         
         if (botonEditar != null)
-            botonEditar.interactable = perfilSeleccionado;
+            botonEditar.interactable = hayPerfil;
             
         if (botonEliminar != null)
             botonEliminar.interactable = permiteEliminar;
     }
     
+    // Crear nuevo perfil
+    public void CrearNuevoPerfil()
+    {
+        // Resetear indicadores de edición
+        PlayerPrefs.SetInt("ModoEdicion", 0);
+        PlayerPrefs.SetInt("IndicePerfilEditar", -1);
+        PlayerPrefs.Save();
+        
+        SceneManager.LoadScene(escenaCreacionPerfil);
+    }
+    
     // Editar el perfil seleccionado
     public void EditarPerfilSeleccionado()
     {
-        if (perfilSeleccionado == null)
-        return;
-    int indice = GestorPerfiles.Instancia.perfilesUsuarios.IndexOf(perfilSeleccionado);
-    PlayerPrefs.SetInt("IndicePerfilEditar", indice);
-    PlayerPrefs.SetInt("ModoEdicion", 1);
-    PlayerPrefs.Save();
-    SceneManager.LoadScene(escenaCreacionPerfil);
+        if (GestorPerfiles.Instancia.CantidadPerfiles() == 0) return;
+        
+        // Configurar modo edición
+        PlayerPrefs.SetInt("ModoEdicion", 1);
+        PlayerPrefs.SetInt("IndicePerfilEditar", indicePerfilSeleccionado);
+        PlayerPrefs.Save();
+        
+        Debug.Log($"Editando perfil en índice: {indicePerfilSeleccionado}");
+        SceneManager.LoadScene(escenaCreacionPerfil);
     }
     
     // Eliminar el perfil seleccionado
     public void EliminarPerfilSeleccionado()
     {
-        if (perfilSeleccionado == null)
-            return;
-            
-        // Verificar que no es el único perfil
-        if (GestorPerfiles.Instancia.perfilesUsuarios.Count <= 1)
+        if (GestorPerfiles.Instancia.CantidadPerfiles() <= 1)
         {
             Debug.LogWarning("No se puede eliminar el único perfil existente");
             return;
         }
         
-        // Confirmar eliminación (aquí podrías mostrar un diálogo)
-        GestorPerfiles.Instancia.EliminarPerfil(perfilSeleccionado);
+        DatosPerfilUsuario perfil = GestorPerfiles.Instancia.ObtenerPerfilActual();
+        if (perfil == null) return;
+        
+        Debug.Log($"Eliminando perfil: {perfil.nombreUsuario}");
+        
+        // Eliminar perfil
+        GestorPerfiles.Instancia.EliminarPerfil(indicePerfilSeleccionado);
         
         // Ajustar índice si es necesario
-        if (indicePerfilSeleccionado >= GestorPerfiles.Instancia.perfilesUsuarios.Count)
+        if (indicePerfilSeleccionado >= GestorPerfiles.Instancia.CantidadPerfiles())
         {
-            indicePerfilSeleccionado = GestorPerfiles.Instancia.perfilesUsuarios.Count - 1;
+            indicePerfilSeleccionado = GestorPerfiles.Instancia.CantidadPerfiles() - 1;
         }
         
-        // Actualizar lista
+        // El gestor ya actualiza su índice interno, sincronizar
+        indicePerfilSeleccionado = GestorPerfiles.Instancia.indicePerfilActual;
+        
+        // Actualizar visualización
         CargarListaPerfiles();
-        
-        // Seleccionar otro perfil
-        if (GestorPerfiles.Instancia.perfilesUsuarios.Count > 0)
-        {
-            SeleccionarPerfilPorIndice(indicePerfilSeleccionado);
-        }
+        ActualizarVisualizacionPerfil();
+        ActualizarEstadoBotones();
+        ActualizarLEDsWiimote();
     }
     
     // Volver al menú de configuración
@@ -352,12 +419,20 @@ public class EdicionPerfiles : MonoBehaviour
     {
         SceneManager.LoadScene(escenaConfiguracion);
     }
-
-        private void OnDestroy()
-{
-    if (GestorUI.Instance != null)
+    
+    private void OnDestroy()
     {
-        GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
+        // Limpiar eventos
+        if (GestorUI.Instance != null)
+        {
+            GestorUI.Instance.OnBotonSeleccionado -= EjecutarOpcionSeleccionada;
+        }
+        
+        // No necesitamos limpiar el Wiimote si lo gestiona GestorWiimotes
+        if (mote != null && GestorWiimotes.Instance?.wiimote == null)
+        {
+            WiimoteManager.Cleanup(mote);
+        }
     }
-}
+
 }
